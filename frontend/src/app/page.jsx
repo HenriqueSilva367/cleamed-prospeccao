@@ -131,7 +131,7 @@ export default function Home() {
   const [filtroBairro, setFiltroBairro] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroIa, setFiltroIa] = useState('todos');
-  const [form, setForm] = useState({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: 'LOW' });
+  const [form, setForm] = useState({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: null });
   const [editandoId, setEditandoId] = useState(null);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -392,7 +392,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
   });
 
   function novoForm() {
-    setForm({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: 'LOW' });
+    setForm({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: null });
     setEditandoId(null);
     setMostrarForm(true);
   }
