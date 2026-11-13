@@ -480,7 +480,6 @@ function analisarEAtualizarProgressoLead(clinicaId, historicoConversa) {
   try {
     db.prepare(`
       UPDATE clinicas
-      UPDATE clinicas
       SET progresso_lead = ?,
           progresso_motivo = ?,
           sales_priority = CASE
