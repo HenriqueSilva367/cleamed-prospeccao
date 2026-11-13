@@ -118,3 +118,10 @@ Na prospecção inicial, o piloto ordena primeiro pela adequação (`fit_score`)
 - Disparo de mensagem no WhatsApp com template personalizado
 - Acompanhamento de progresso por status
 - Exportar lista em CSV
+
+
+## Consulta de follow-ups pendentes
+
+O endpoint `GET /api/autopilot/followups` lista, sem enviar mensagens, os leads com status `sent` cujo prazo de follow-up já venceu conforme `followup_stage` e as configurações `followup_dias_1` a `followup_dias_4`. A resposta informa se o envio automático está habilitado, a cadência configurada, a quantidade total e os itens retornados (com prazo e indicação de vencido/no prazo).
+
+A consulta respeita os filtros atuais do piloto: status `sent`, sem bot detectado e com IA ativa. A rota é somente de leitura; `followup_auto_ativo` continua desativado por padrão e nenhuma mensagem é disparada por ela.
