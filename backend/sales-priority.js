@@ -1,6 +1,7 @@
 const VALID_SALES_PRIORITIES = ['HIGH', 'MEDIUM', 'LOW'];
 
 function deriveSalesPriority(lead = {}) {
+  if (['SEM_INTERESSE', 'ROBO_URA'].includes(lead.progresso_lead)) return 'LOW';
   if (lead.handoff_at || ['INTERESSE_ALTO', 'INDICOU_RESPONSAVEL'].includes(lead.progresso_lead) ||
       ['reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted'].includes(lead.status)) {
     return 'HIGH';
