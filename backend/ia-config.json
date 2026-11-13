@@ -3,7 +3,6 @@
   "negativeIntents": [
     "não tenho interesse",
     "não temos interesse",
-    "não temos",
     "não quero",
     "não precisamos",
     "não vamos precisar",
@@ -18,15 +17,7 @@
     "pare de mandar",
     "não mande mais",
     "não me mande",
-    "sem interesse",
-    "não é comigo",
-    "estamos satisfeitos",
-    "não desejamos trocar",
-    "já fomos atendidos",
-    "já temos o nosso",
-    "estamos bem assim",
-    "agradecemos o contato",
-    "já somos atendidos"
+    "sem interesse"
   ],
   "highPriorityTriggers": [
     "preço",

@@ -237,3 +237,47 @@ test('18. detectAutoResponder identifica links de direcionamento e auto-responde
 
 
 
+
+
+test('19. detectNegativeIntent não confunde ausência de sistema com rejeição', () => {
+  assert.equal(detectNegativeIntent('Não temos sistema, fazemos tudo manualmente.'), false);
+  assert.equal(detectNegativeIntent('Não é comigo, a responsável é a Ana.'), false);
+  assert.equal(detectNegativeIntent('Já temos um sistema.'), false);
+  assert.equal(detectNegativeIntent('Não tenho interesse, obrigado.'), true);
+  assert.equal(detectNegativeIntent('Por favor, não mande mais mensagens.'), true);
+});
+
+test('20. detectStageTransition só avança para interesse com intenção comercial explícita', () => {
+  assert.equal(detectStageTransition([{ fromMe: false, body: 'Como funciona a confirmação?' }], Stage.DISCOVERY), Stage.DISCOVERY);
+  assert.equal(detectStageTransition([{ fromMe: false, body: 'Quanto custa o sistema?' }], Stage.DISCOVERY), Stage.INTERESSE);
+  assert.equal(detectStageTransition([{ fromMe: false, body: 'Quero agendar uma demonstração.' }], Stage.DISCOVERY), Stage.DEMO);
+});
+
+test('21. analisarEAtualizarProgressoLead não classifica menção neutra a sistema como dor', () => {
+  const { analisarEAtualizarProgressoLead } = require('../ia');
+  const db = require('../db/database');
+  const res = db.prepare("INSERT INTO clinicas (nome, tel, status) VALUES ('Clínica Sistema Neutro', '5585111111111', 'interviewing')").run();
+  try {
+    const result = analisarEAtualizarProgressoLead(res.lastInsertRowid, [
+      { fromMe: true, body: 'Vocês usam algum sistema?' },
+      { fromMe: false, body: 'Sim, temos um sistema.' }
+    ]);
+    assert.equal(result.progresso, 'EM_QUALIFICACAO');
+  } finally {
+    db.prepare("DELETE FROM clinicas WHERE id = ?").run(res.lastInsertRowid);
+  }
+});
+
+test('22. analisarEAtualizarProgressoLead identifica processo manual como dor', () => {
+  const { analisarEAtualizarProgressoLead } = require('../ia');
+  const db = require('../db/database');
+  const res = db.prepare("INSERT INTO clinicas (nome, tel, status) VALUES ('Clínica Manual Teste', '5585222222222', 'interviewing')").run();
+  try {
+    const result = analisarEAtualizarProgressoLead(res.lastInsertRowid, [
+      { fromMe: false, body: 'Fazemos as confirmações manualmente e dá muito trabalho.' }
+    ]);
+    assert.equal(result.progresso, 'QUALIFICADO_DOR');
+  } finally {
+    db.prepare("DELETE FROM clinicas WHERE id = ?").run(res.lastInsertRowid);
+  }
+});

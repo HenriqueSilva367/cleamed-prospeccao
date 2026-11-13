@@ -47,15 +47,21 @@ const Stage = {
 
 /** Detect if a client message contains a clear negative intent */
 function detectNegativeIntent(message) {
-  if (!message) return false;
-  const lower = message.toLowerCase();
+  if (!message || typeof message !== 'string') return false;
+  const normalize = value => String(value).toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  const normalized = ' ' + normalize(message) + ' ';
   const negativeList = config.negativeIntents || [
-    "não tenho interesse", "não quero", "já temos sistema", "não precisamos",
-    "pode parar de entrar em contato", "número errado", "empresa fechada", "não estou interessado",
-    "já temos", "não preciso", "não precisamos", "não quero receber",
-    "para de mandar", "pare de mandar", "não mande mais", "não me mande"
+    'nao tenho interesse', 'nao temos interesse', 'nao quero', 'nao precisamos',
+    'nao preciso', 'pode parar de entrar em contato', 'numero errado',
+    'empresa fechada', 'nao estou interessado', 'nao estou interessada',
+    'nao quero receber', 'para de mandar', 'pare de mandar', 'nao mande mais',
+    'nao me mande', 'sem interesse'
   ];
-  return negativeList.some(intent => lower.includes(intent.toLowerCase()));
+  return negativeList.some(intent => normalized.includes(' ' + normalize(intent) + ' '));
 }
 
 /**
@@ -449,31 +455,25 @@ function analisarEAtualizarProgressoLead(clinicaId, historicoConversa) {
     prioridade = 'LOW';
     proximaAcao = 'Nenhuma ação adicional necessária';
   }
-  // 4. Verificar Alto Interesse (Pediu valor, demo, reunião, como funciona)
+  // 4. Alto interesse: pedidos comerciais explícitos, não qualquer menção a "funciona" ou "agendar".
   else if (
-    ultimaMsgLower.includes('quanto') || ultimaMsgLower.includes('custa') || 
-    ultimaMsgLower.includes('preço') || ultimaMsgLower.includes('preco') ||
-    ultimaMsgLower.includes('valor') || ultimaMsgLower.includes('reunião') ||
-    ultimaMsgLower.includes('reuniao') || ultimaMsgLower.includes('demonstração') ||
-    ultimaMsgLower.includes('demonstracao') || ultimaMsgLower.includes('agendar') ||
-    ultimaMsgLower.includes('marcar') || ultimaMsgLower.includes('funciona') ||
-    ultimaMsgLower.includes('tenho interesse') || ultimaMsgLower.includes('me manda')
+    /\b(quanto custa|qual o preco|qual o valor|preco|valor do plano|valor do sistema|custa quanto)\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '')) ||
+    /\b(demonstracao|demo|reuniao|teste gratis|testar o sistema|quero testar|gostaria de testar)\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '')) ||
+    /\b(tenho interesse|quero conhecer|gostaria de conhecer|quero saber mais|me manda o link|me envie o link|quero contratar)\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
   ) {
     progresso = 'INTERESSE_ALTO';
-    motivo = 'Lead demonstrou alto interesse, solicitou reunião, preço ou demonstração';
+    motivo = 'Lead solicitou preço, demonstração, teste ou demonstrou interesse explícito';
     prioridade = 'HIGH';
-    proximaAcao = 'Entrar em contato imediatamente para agendar demonstração';
+    proximaAcao = 'Entrar em contato para entender a necessidade e combinar o próximo passo';
   }
-  // 5. Verificar se relatou dor ou sistema atual
+  // 5. Dor operacional: uma simples menção a sistema não significa insatisfação.
   else if (
-    todasMsgCliente.includes('sistema') || todasMsgCliente.includes('manual') ||
-    todasMsgCliente.includes('faltas') || todasMsgCliente.includes('incomoda') ||
-    todasMsgCliente.includes('dificuldade') || todasMsgCliente.includes('perda')
+    /\b(manual|manualmente|planilha|caderno|faltas|demora|demorado|sobrecarga|retrabalho|desorganiza|dificuldade|problema|perda de horario|horarios vagos|consome muito tempo|da muito trabalho|nao confirma|nao fazem confirmacao)\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
   ) {
     progresso = 'QUALIFICADO_DOR';
-    motivo = 'Lead compartilhou informações sobre o processo atual e dores na recepção';
+    motivo = 'Lead relatou processo manual ou dificuldade operacional na rotina da clínica';
     prioridade = 'HIGH';
-    proximaAcao = 'Apresentar como a CleanMed resolve essas dores específicas';
+    proximaAcao = 'Investigar a dificuldade relatada antes de apresentar uma solução';
   }
 
   // Atualiza no SQLite
@@ -658,16 +658,12 @@ function detectStageTransition(history, currentStage) {
   
   if (detectNegativeIntent(txt)) return Stage.HUMANO;
   
-  const triggers = config.highPriorityTriggers || ['preço', 'custo', 'valor', 'quanto custa', 'demonstração', 'reunião', 'agendar', 'interesse'];
-  if (triggers.some(k => txt.includes(k))) {
-    if (txt.includes('demonstração') || txt.includes('reunião') || txt.includes('agendar')) {
-      return Stage.DEMO;
-    }
-    return Stage.INTERESSE;
-  }
-  
-  const painKeywords = ['manual', 'dificuldade', 'problema', 'custo', 'perda', 'falta', 'desafio'];
-  if (painKeywords.some(k => txt.includes(k))) return Stage.DOR_IDENTIFICADA;
+  const normalized = txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/\b(demonstracao|demo|reuniao|teste gratis|quero testar|gostaria de testar)\b/.test(normalized)) return Stage.DEMO;
+  if (/\b(quanto custa|qual o preco|qual o valor|preco|valor do plano|valor do sistema|tenho interesse|quero conhecer|gostaria de conhecer|quero contratar)\b/.test(normalized)) return Stage.INTERESSE;
+
+  const painKeywords = ['manual', 'manualmente', 'dificuldade', 'problema', 'demora', 'sobrecarga', 'retrabalho', 'faltas', 'desorganiza'];
+  if (painKeywords.some(k => normalized.includes(k))) return Stage.DOR_IDENTIFICADA;
   
   if (currentStage === Stage.DOR_IDENTIFICADA) return Stage.SOLUCAO_APRESENTADA;
   
@@ -1091,9 +1087,9 @@ Dono: ${clinica?.nome_dono || 'Desconhecido'}
 
 COMPORTAMENTO POR ESTÁGIO:
 - DISCOVERY: Pergunte se usam sistema ou é manual APENAS SE AINDA NÃO SOUBER. Se o cliente já respondeu, siga com o assunto e não repita a pergunta. UMA pergunta por mensagem.
-- DOR_IDENTIFICADA: Se o lead disse que faz tudo manual, NUNCA mais pergunte sobre sistema. Mostre empatia (1 frase sobre a sobrecarga da recepção) e convide para ver uma demonstração de 5 minutos ou testar gratuitamente por 15 dias.
-- SOLUCAO_APRESENTADA: Apresente a automação via WhatsApp da CleanMed em 1-2 linhas. Convide para demonstração ou teste sem compromisso.
-- INTERESSE/DEMO: Se pedir preço, informe (${plansText}). Se pedir demo/reunião ou demonstrar interesse, ofereça agendar um horário rápido ou criar um acesso de testes gratuito para ele e inclua [PASSAR_PARA_HUMANO]. NUNCA mande links frios para o lead se cadastrar sozinho.
+- DOR_IDENTIFICADA: Se o lead disse que faz tudo manual, NUNCA mais pergunte sobre sistema. Mostre empatia (1 frase sobre a sobrecarga da recepção) e explique brevemente como a CleanMed pode ajudar. O teste gratuito é de 30 dias, sem cartão.
+- SOLUCAO_APRESENTADA: Apresente a automação via WhatsApp da CleanMed em 1-2 linhas. Faça uma pergunta objetiva para entender se a solução atende à necessidade, sem pressionar para uma demonstração.
+- INTERESSE/DEMO: Se pedir preço/condições, demonstração, teste ou solicitar contato comercial, responda apenas [PASSAR_PARA_HUMANO]. Não informe preços nem prometa condições por conta própria. Se perguntar genericamente como funciona ou pedir mais informações, responda brevemente e continue a qualificação; isso, sozinho, não é motivo para handoff. NUNCA mande links frios para o lead se cadastrar sozinho.
 
 REGRAS ESPECIAIS (SOBRESCREVEM QUALQUER ESTÁGIO):
 - REGRA DE ONBOARDING E CADASTRO: NUNCA mande link solto de site pedindo para o cliente se cadastrar por conta própria. Médicos e recepcionistas não preenchem cadastro sozinhos. Sempre ofereça criar o acesso para ele ou fazer uma chamada de 5 minutos para demonstrar.
