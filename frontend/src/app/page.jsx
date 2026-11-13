@@ -254,6 +254,19 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
     }
   }, []);
 
+  const registrarFollowupManual = async (item) => {
+    const etapa = Number(item.followup_stage || 0) + 1;
+    if (!window.confirm(`Confirma que você já realizou o follow-up da clínica ${item.nome}? Isso avançará para a etapa ${etapa + 1} e recalculará o próximo prazo. Nenhuma mensagem será enviada.`)) return;
+    try {
+      const response = await fetch(`${API}/clinicas/${item.id}/followup/registrar`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.erro || 'Não foi possível registrar o follow-up.');
+      await Promise.all([fetchFollowupQueue(), fetchClinicas()]);
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
   const fetchAutopilotConfig = useCallback(async () => {
     try {
       const rCfg = await fetch(`${API}/autopilot/config`);
@@ -1266,6 +1279,10 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                         <button onClick={() => abrirChatModal(item)}
                           className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700">
                           Abrir conversa
+                        </button>
+                        <button onClick={() => registrarFollowupManual(item)}
+                          className="px-4 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100">
+                          Registrar retorno feito
                         </button>
                       </div>
                     </div>
