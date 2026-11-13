@@ -290,7 +290,8 @@ router.get('/messages/search/all', (req, res) => {
         c.tel as clinica_tel,
         c.categoria as clinica_categoria,
         c.status as clinica_status,
-        c.lead_priority as clinica_priority,
+        c.sales_priority as clinica_priority,
+        c.lead_priority as clinica_fit_priority,
         IFNULL(c.ia_ativa, 1) as clinica_ia_ativa
       FROM messages m
       JOIN clinicas c ON c.id = m.clinica_id
