@@ -6,6 +6,7 @@ const { enriquecerLeadComReviews } = require('./review-scraper');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { getDailyStats } = require('./daily-stats');
 
 let autopilotStatus = {
     isOn: false,
@@ -15,11 +16,6 @@ let autopilotStatus = {
 
 let loopTimeout = null;
 let isLoopRunning = false;
-
-let dailyStats = {
-    date: new Date().toLocaleDateString(),
-    sentCount: 0
-};
 
 function addLog(msg) {
     console.log(`[Autopilot] ${msg}`);
@@ -364,14 +360,9 @@ async function runLoop() {
             return;
         }
 
-        // Verifica limite diário
-        const today = new Date().toLocaleDateString();
-        if (dailyStats.date !== today) {
-            dailyStats.date = today;
-            dailyStats.sentCount = 0;
-            addLog('Novo dia! Contador de envios resetado.');
-        }
-
+        // Recalcula a contagem a partir das mensagens persistidas no banco.
+        // Assim, reiniciar o processo não zera o limite diário.
+        const dailyStats = getDailyStats(db);
         const maxDaily = parseInt(getConfig('limite_diario_envios')) || 40;
         if (dailyStats.sentCount >= maxDaily) {
             autopilotStatus.currentTask = `Limite diário de ${maxDaily} envios atingido. Aguardando até amanhã...`;
@@ -577,8 +568,8 @@ async function runLoop() {
                 WHERE id = ?
             `).run(lead.id);
         }
-        dailyStats.sentCount += 1;
-        addLog(`Sucesso! Lead ${lead.nome} processado. Total hoje: ${dailyStats.sentCount}/${maxDaily}`);
+        const updatedDailyStats = getDailyStats(db);
+        addLog(`Sucesso! Lead ${lead.nome} processado. Total hoje: ${updatedDailyStats.sentCount}/${maxDaily}`);
 
         // Ajustado: 5 a 10 minutos (300.000 ms a 600.000 ms)
         const sleepTime = Math.floor(Math.random() * (600000 - 300000 + 1) + 300000);
@@ -643,7 +634,11 @@ function toggleAutopilot() {
 }
 
 function getStatus() {
-    return autopilotStatus;
+    return {
+        ...autopilotStatus,
+        dailyStats: getDailyStats(db),
+        dailyLimit: parseInt(getConfig('limite_diario_envios')) || 40
+    };
 }
 
 module.exports = {
