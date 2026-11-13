@@ -1,0 +1,23 @@
+{
+  "name": "cleanmed-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "playwright": "^1.58.2",
+    "playwright-extra": "^4.3.6",
+    "postcss": "^8.4.38",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "tailwindcss": "^3.4.1"
+  }
+}

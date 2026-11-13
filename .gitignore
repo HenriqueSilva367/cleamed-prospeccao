@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment variables (keep .env.example / .env.local.example)
+.env
+.env.local
+.env.*.local
+
+# WhatsApp Web session & cache
+.wwebjs_auth/
+.wwebjs_cache/
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Local backups
+backend/backups/
+
+# macOS
+.DS_Store
+

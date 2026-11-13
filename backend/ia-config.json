@@ -1,0 +1,50 @@
+{
+  "maxAiRepliesWithoutProgress": 4,
+  "negativeIntents": [
+    "não tenho interesse",
+    "não temos interesse",
+    "não temos",
+    "não quero",
+    "não precisamos",
+    "não vamos precisar",
+    "não preciso",
+    "pode parar de entrar em contato",
+    "número errado",
+    "empresa fechada",
+    "não estou interessado",
+    "não estou interessada",
+    "não quero receber",
+    "para de mandar",
+    "pare de mandar",
+    "não mande mais",
+    "não me mande",
+    "sem interesse",
+    "não é comigo",
+    "estamos satisfeitos",
+    "não desejamos trocar",
+    "já fomos atendidos",
+    "já temos o nosso",
+    "estamos bem assim",
+    "agradecemos o contato",
+    "já somos atendidos"
+  ],
+  "highPriorityTriggers": [
+    "preço",
+    "custo",
+    "valor",
+    "quanto custa",
+    "demonstração",
+    "reunião",
+    "agendar",
+    "interesse"
+  ],
+  "plans": {
+    "Pro": "R$149,90/mês",
+    "Business": "R$249,90/mês",
+    "Platinum": "R$499,90/mês"
+  },
+  "fallbackTemplates": [
+    "Oi! Tudo bem? Sou o Henrique. Em clínicas, a falta de pacientes sem aviso costuma ser um problema recorrente.\n\nComo vocês lidam com isso hoje? Usam algum sistema ou fazem manualmente?",
+    "Oi! Tudo bem? Aqui é o Henrique. Como vocês fazem a confirmação de consultas hoje?\n\nÉ tudo manual ou já usam algum sistema?"
+  ]
+}
