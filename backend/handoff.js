@@ -10,6 +10,7 @@ function registrarHandoff(db, clinicaId, reason) {
         ia_ativa = 0,
         handoff_at = datetime('now'),
         handoff_reason = ?,
+        sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE 'HIGH' END,
         proxima_acao = 'Assumir conversa no WhatsApp'
     WHERE id = ? AND handoff_at IS NULL
   `).run(reason || 'A IA solicitou atendimento humano.', clinicaId);
