@@ -1,5 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+function deleteTestClinic(db, id) {
+  db.prepare('DELETE FROM status_history WHERE clinica_id = ?').run(id);
+  db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+}
+
 const { 
   Stage, 
   detectNegativeIntent, 
@@ -146,7 +151,7 @@ test('13. classificarEAtualizarLead classifica URA de CPF e salva tem_bot no SQL
   assert.equal(leadDB.status, 'disabled'); // Desativado para impedir autopiloto
 
   // Limpa banco
-  db.prepare("DELETE FROM clinicas WHERE id = ?").run(clinicaId);
+  deleteTestClinic(db, clinicaId);
 });
 
 test('14. classificarEAtualizarLead classifica URA de Menu numérico', () => {
@@ -166,7 +171,7 @@ test('14. classificarEAtualizarLead classifica URA de Menu numérico', () => {
   assert.equal(leadDB.tem_bot, 1);
   assert.equal(leadDB.tipo_atendimento, 'ura_menu');
 
-  db.prepare("DELETE FROM clinicas WHERE id = ?").run(clinicaId);
+  deleteTestClinic(db, clinicaId);
 });
 
 test('15. analisarEAtualizarProgressoLead identifica Alto Interesse quando lead pede reunião ou valor', () => {
@@ -188,9 +193,9 @@ test('15. analisarEAtualizarProgressoLead identifica Alto Interesse quando lead 
 
   const leadDB = db.prepare("SELECT * FROM clinicas WHERE id = ?").get(clinicaId);
   assert.equal(leadDB.progresso_lead, 'INTERESSE_ALTO');
-  assert.equal(leadDB.lead_priority, 'HIGH');
+  assert.equal(leadDB.sales_priority, 'HIGH');
 
-  db.prepare("DELETE FROM clinicas WHERE id = ?").run(clinicaId);
+  deleteTestClinic(db, clinicaId);
 });
 
 test('16. analisarEAtualizarProgressoLead identifica Sem Interesse quando lead recusa', () => {
@@ -214,7 +219,7 @@ test('16. analisarEAtualizarProgressoLead identifica Sem Interesse quando lead r
   assert.equal(leadDB.progresso_lead, 'SEM_INTERESSE');
   assert.equal(leadDB.lead_priority, 'LOW');
 
-  db.prepare("DELETE FROM clinicas WHERE id = ?").run(clinicaId);
+  deleteTestClinic(db, clinicaId);
 });
 
 test('17. detectAutoResponder identifica LGPD, aceitar termos e erros de navegação de robôs', () => {
@@ -264,7 +269,7 @@ test('21. analisarEAtualizarProgressoLead não classifica menção neutra a sist
     ]);
     assert.equal(result.progresso, 'EM_QUALIFICACAO');
   } finally {
-    db.prepare("DELETE FROM clinicas WHERE id = ?").run(res.lastInsertRowid);
+    deleteTestClinic(db, res.lastInsertRowid);
   }
 });
 
@@ -278,6 +283,6 @@ test('22. analisarEAtualizarProgressoLead identifica processo manual como dor', 
     ]);
     assert.equal(result.progresso, 'QUALIFICADO_DOR');
   } finally {
-    db.prepare("DELETE FROM clinicas WHERE id = ?").run(res.lastInsertRowid);
+    deleteTestClinic(db, res.lastInsertRowid);
   }
 });
