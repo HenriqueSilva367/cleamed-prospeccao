@@ -185,6 +185,27 @@ try {
 try { db.exec("ALTER TABLE clinicas ADD COLUMN handoff_at TEXT;"); } catch (e) {}
 try { db.exec("ALTER TABLE clinicas ADD COLUMN handoff_reason TEXT;"); } catch (e) {}
 try { db.exec("ALTER TABLE clinicas ADD COLUMN handoff_notified_at TEXT;"); } catch (e) {}
+try { db.exec("ALTER TABLE clinicas ADD COLUMN sales_priority TEXT DEFAULT 'LOW';"); } catch (e) {}
+try { db.exec("ALTER TABLE clinicas ADD COLUMN sales_priority_source TEXT DEFAULT 'auto';"); } catch (e) {}
+
+// Backfill conservador: usa sinais reais de conversa/funil, não o antigo lead_priority,
+// que misturava adequação do perfil com prioridade comercial.
+db.exec(`
+  UPDATE clinicas
+  SET sales_priority = CASE
+    WHEN handoff_at IS NOT NULL
+      OR progresso_lead IN ('INTERESSE_ALTO', 'INDICOU_RESPONSAVEL')
+      OR status IN ('reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted')
+      THEN 'HIGH'
+    WHEN progresso_lead = 'QUALIFICADO_DOR'
+      OR status IN ('reply', 'interviewing')
+      THEN 'MEDIUM'
+    ELSE 'LOW'
+  END
+  WHERE (sales_priority IS NULL OR sales_priority = '' OR sales_priority = 'LOW')
+    AND IFNULL(sales_priority_source, 'auto') != 'manual';
+`);
+
 
 db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_clinicas_google_place_id ON clinicas(google_place_id);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_clinicas_status_score ON clinicas(status, fit_score, lead_priority);`);

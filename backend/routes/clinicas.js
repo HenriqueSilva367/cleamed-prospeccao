@@ -22,9 +22,9 @@ router.get('/stats', (req, res) => {
     const desativados = db.prepare("SELECT count(*) as count FROM clinicas WHERE status = 'disabled'").get().count;
     const responderam = db.prepare("SELECT count(*) as count FROM clinicas WHERE status IN ('reply', 'interviewing', 'reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted')").get().count;
     const total = db.prepare("SELECT count(*) as count FROM clinicas").get().count;
-    const high = db.prepare("SELECT count(*) as count FROM clinicas WHERE lead_priority = 'HIGH'").get().count;
-    const medium = db.prepare("SELECT count(*) as count FROM clinicas WHERE lead_priority = 'MEDIUM'").get().count;
-    const low = db.prepare("SELECT count(*) as count FROM clinicas WHERE lead_priority = 'LOW' OR lead_priority IS NULL").get().count;
+    const high = db.prepare("SELECT count(*) as count FROM clinicas WHERE sales_priority = 'HIGH'").get().count;
+    const medium = db.prepare("SELECT count(*) as count FROM clinicas WHERE sales_priority = 'MEDIUM'").get().count;
+    const low = db.prepare("SELECT count(*) as count FROM clinicas WHERE sales_priority = 'LOW' OR sales_priority IS NULL").get().count;
 
     // Métricas de conversão
     const emEntrevista = db.prepare("SELECT count(*) as count FROM clinicas WHERE status = 'interviewing'").get().count;
@@ -65,15 +65,20 @@ router.get('/stats', (req, res) => {
 
 // Adicionar uma
 router.post('/', (req, res) => {
-  const { nome, tel, bairro, email, endereco, site, avaliacao, origem, categoria, cidade, lead_priority } = req.body;
+  const { nome, tel, bairro, email, endereco, site, avaliacao, origem, categoria, cidade, sales_priority } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório' });
-  const lead = applyLeadScore({ nome, tel, bairro, email, endereco, site, avaliacao, origem, categoria, cidade, lead_priority });
+  if (sales_priority && !['HIGH', 'MEDIUM', 'LOW'].includes(sales_priority)) {
+    return res.status(400).json({ erro: 'Prioridade comercial inválida' });
+  }
+  const lead = applyLeadScore({ nome, tel, bairro, email, endereco, site, avaliacao, origem, categoria, cidade });
+  const prioridadeComercial = sales_priority || 'LOW';
+  const origemPrioridade = sales_priority ? 'manual' : 'auto';
   const stmt = db.prepare(
-    `INSERT INTO clinicas (nome, tel, bairro, email, endereco, site, avaliacao, origem, categoria, cidade, lead_priority, fit_score, score_reason)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO clinicas (nome, tel, bairro, email, endereco, site, avaliacao, origem, categoria, cidade, lead_priority, fit_score, score_reason, sales_priority, sales_priority_source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
-  const result = stmt.run(lead.nome, lead.tel||'', lead.bairro||'', lead.email||'', lead.endereco||'', lead.site||'', lead.avaliacao||'', lead.origem||'manual', lead.categoria||'', lead.cidade||'', lead.lead_priority||'LOW', lead.fit_score||0, lead.score_reason||'');
-  res.json({ id: result.lastInsertRowid, ...lead });
+  const result = stmt.run(lead.nome, lead.tel||'', lead.bairro||'', lead.email||'', lead.endereco||'', lead.site||'', lead.avaliacao||'', lead.origem||'manual', lead.categoria||'', lead.cidade||'', lead.lead_priority||'LOW', lead.fit_score||0, lead.score_reason||'', prioridadeComercial, origemPrioridade);
+  res.json({ id: result.lastInsertRowid, ...lead, sales_priority: prioridadeComercial, sales_priority_source: origemPrioridade });
 });
 
 // Adicionar vários de uma vez
@@ -81,28 +86,41 @@ router.post('/bulk', (req, res) => {
   const { clinicas } = req.body;
   if (!Array.isArray(clinicas)) return res.status(400).json({ erro: 'Envie um array de clínicas' });
   const stmt = db.prepare(
-    `INSERT INTO clinicas (nome, tel, bairro, email, endereco, site, avaliacao, origem, categoria, cidade, lead_priority, fit_score, score_reason)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO clinicas (nome, tel, bairro, email, endereco, site, avaliacao, origem, categoria, cidade, lead_priority, fit_score, score_reason, sales_priority, sales_priority_source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insertMany = db.transaction((items) => {
     for (const c of items) {
+      if (c.sales_priority && !['HIGH', 'MEDIUM', 'LOW'].includes(c.sales_priority)) throw new Error('Prioridade comercial inválida');
       const lead = applyLeadScore(c);
-      stmt.run(lead.nome, lead.tel||'', lead.bairro||'', lead.email||'', lead.endereco||'', lead.site||'', lead.avaliacao||'', lead.origem||'manual', lead.categoria||'', lead.cidade||'', lead.lead_priority||'LOW', lead.fit_score||0, lead.score_reason||'');
+      const salesPriority = c.sales_priority || 'LOW';
+      stmt.run(lead.nome, lead.tel||'', lead.bairro||'', lead.email||'', lead.endereco||'', lead.site||'', lead.avaliacao||'', lead.origem||'manual', lead.categoria||'', lead.cidade||'', lead.lead_priority||'LOW', lead.fit_score||0, lead.score_reason||'', salesPriority, c.sales_priority ? 'manual' : 'auto');
     }
   });
-  insertMany(clinicas);
-  res.json({ inseridos: clinicas.length });
+  try {
+    insertMany(clinicas);
+    res.json({ inseridos: clinicas.length });
+  } catch (error) {
+    res.status(400).json({ erro: error.message || 'Falha ao importar clínicas' });
+  }
 });
 
 // Editar clínica
 router.put('/:id', (req, res) => {
-  const { nome, tel, bairro, email, endereco, site, avaliacao, categoria, cidade, lead_priority } = req.body;
+  const { nome, tel, bairro, email, endereco, site, avaliacao, categoria, cidade, sales_priority } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório' });
-  const lead = applyLeadScore({ nome, tel, bairro, email, endereco, site, avaliacao, categoria, cidade, lead_priority });
+  if (sales_priority && !['HIGH', 'MEDIUM', 'LOW'].includes(sales_priority)) {
+    return res.status(400).json({ erro: 'Prioridade comercial inválida' });
+  }
+  const atual = db.prepare('SELECT sales_priority, sales_priority_source FROM clinicas WHERE id = ?').get(req.params.id);
+  if (!atual) return res.status(404).json({ erro: 'Clínica não encontrada' });
+  const lead = applyLeadScore({ nome, tel, bairro, email, endereco, site, avaliacao, categoria, cidade });
+  const prioridadeComercial = sales_priority || atual.sales_priority || 'LOW';
+  const origemPrioridade = sales_priority && sales_priority !== atual.sales_priority ? 'manual' : (atual.sales_priority_source || 'auto');
   db.prepare(
-    `UPDATE clinicas SET nome=?, tel=?, bairro=?, email=?, endereco=?, site=?, avaliacao=?, categoria=?, cidade=?, lead_priority=?, fit_score=?, score_reason=? WHERE id=?`
-  ).run(lead.nome, lead.tel||'', lead.bairro||'', lead.email||'', lead.endereco||'', lead.site||'', lead.avaliacao||'', lead.categoria||'', lead.cidade||'', lead.lead_priority||'LOW', lead.fit_score||0, lead.score_reason||'', req.params.id);
-  res.json({ ok: true });
+    `UPDATE clinicas SET nome=?, tel=?, bairro=?, email=?, endereco=?, site=?, avaliacao=?, categoria=?, cidade=?, lead_priority=?, fit_score=?, score_reason=?, sales_priority=?, sales_priority_source=? WHERE id=?`
+  ).run(lead.nome, lead.tel||'', lead.bairro||'', lead.email||'', lead.endereco||'', lead.site||'', lead.avaliacao||'', lead.categoria||'', lead.cidade||'', lead.lead_priority||'LOW', lead.fit_score||0, lead.score_reason||'', prioridadeComercial, origemPrioridade, req.params.id);
+  res.json({ ok: true, sales_priority: prioridadeComercial, sales_priority_source: origemPrioridade, fit_priority: lead.lead_priority });
 });
 
 // Atualizar status
@@ -110,13 +128,26 @@ router.patch('/:id/status', (req, res) => {
   const { status } = req.body;
   if (!STATUS_VALIDOS.includes(status)) return res.status(400).json({ erro: 'Status inválido' });
   const pausarIa = ['reply', 'reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted'].includes(status);
+  const prioridadeStatus = ['reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted'].includes(status)
+    ? 'HIGH'
+    : (['reply', 'interviewing'].includes(status) ? 'MEDIUM' : 'LOW');
   if (pausarIa) {
-    db.prepare('UPDATE clinicas SET status = ?, ia_ativa = 0 WHERE id = ?').run(status, req.params.id);
+    db.prepare(`
+      UPDATE clinicas
+      SET status = ?, ia_ativa = 0,
+          sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE ? END
+      WHERE id = ?
+    `).run(status, prioridadeStatus, req.params.id);
     if (cancelarDebounceLead) {
       cancelarDebounceLead(parseInt(req.params.id, 10));
     }
   } else {
-    db.prepare('UPDATE clinicas SET status = ? WHERE id = ?').run(status, req.params.id);
+    db.prepare(`
+      UPDATE clinicas
+      SET status = ?,
+          sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE ? END
+      WHERE id = ?
+    `).run(status, prioridadeStatus, req.params.id);
   }
   res.json({ ok: true, ia_pausada: pausarIa });
 });
@@ -155,10 +186,15 @@ router.patch('/:id/ia', (req, res) => {
 
 // Atualizar próxima ação e qualificação
 router.patch('/:id/proxima-acao', (req, res) => {
-  const { proxima_acao, proxima_acao_data, nome_dono, sistema_atual, dor_detectada, lead_priority } = req.body;
-  const atual = db.prepare('SELECT nome_dono, sistema_atual, dor_detectada, lead_priority FROM clinicas WHERE id = ?').get(req.params.id);
+  const { proxima_acao, proxima_acao_data, nome_dono, sistema_atual, dor_detectada, sales_priority } = req.body;
+  const atual = db.prepare('SELECT nome_dono, sistema_atual, dor_detectada, sales_priority, sales_priority_source FROM clinicas WHERE id = ?').get(req.params.id);
   if (!atual) return res.status(404).json({ erro: 'Clínica não encontrada' });
+  if (sales_priority && !['HIGH', 'MEDIUM', 'LOW'].includes(sales_priority)) {
+    return res.status(400).json({ erro: 'Prioridade comercial inválida' });
+  }
 
+  const prioridadeComercial = sales_priority || atual.sales_priority || 'LOW';
+  const origemPrioridade = sales_priority && sales_priority !== atual.sales_priority ? 'manual' : (atual.sales_priority_source || 'auto');
   db.prepare(`
     UPDATE clinicas
     SET proxima_acao = ?,
@@ -166,7 +202,8 @@ router.patch('/:id/proxima-acao', (req, res) => {
         nome_dono = ?,
         sistema_atual = ?,
         dor_detectada = ?,
-        lead_priority = ?
+        sales_priority = ?,
+        sales_priority_source = ?
     WHERE id = ?
   `).run(
     proxima_acao || null,
@@ -174,10 +211,11 @@ router.patch('/:id/proxima-acao', (req, res) => {
     nome_dono !== undefined ? (nome_dono || null) : atual.nome_dono,
     sistema_atual !== undefined ? (sistema_atual || null) : atual.sistema_atual,
     dor_detectada !== undefined ? (dor_detectada || null) : atual.dor_detectada,
-    lead_priority || atual.lead_priority || 'MEDIUM',
+    prioridadeComercial,
+    origemPrioridade,
     req.params.id
   );
-  res.json({ ok: true });
+  res.json({ ok: true, sales_priority: prioridadeComercial, sales_priority_source: origemPrioridade });
 });
 
 // Deletar
@@ -252,7 +290,8 @@ router.get('/messages/search/all', (req, res) => {
         c.tel as clinica_tel,
         c.categoria as clinica_categoria,
         c.status as clinica_status,
-        c.lead_priority as clinica_priority,
+        c.sales_priority as clinica_priority,
+        c.lead_priority as clinica_fit_priority,
         IFNULL(c.ia_ativa, 1) as clinica_ia_ativa
       FROM messages m
       JOIN clinicas c ON c.id = m.clinica_id

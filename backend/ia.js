@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./ia-config.json');
 const db = require('./db/database');
+const { deriveSalesPriority } = require('./sales-priority');
 
 // Inicialização dinâmica da API da OpenAI
 function getOpenAI() {
@@ -472,9 +473,11 @@ function analisarEAtualizarProgressoLead(clinicaId, historicoConversa) {
   ) {
     progresso = 'QUALIFICADO_DOR';
     motivo = 'Lead relatou processo manual ou dificuldade operacional na rotina da clínica';
-    prioridade = 'HIGH';
+    prioridade = 'MEDIUM';
     proximaAcao = 'Investigar a dificuldade relatada antes de apresentar uma solução';
   }
+
+  prioridade = deriveSalesPriority({ progresso_lead: progresso });
 
   // Atualiza no SQLite
   try {
@@ -482,7 +485,10 @@ function analisarEAtualizarProgressoLead(clinicaId, historicoConversa) {
       UPDATE clinicas
       SET progresso_lead = ?,
           progresso_motivo = ?,
-          lead_priority = ?,
+          sales_priority = CASE
+            WHEN sales_priority_source = 'manual' THEN sales_priority
+            ELSE ?
+          END,
           proxima_acao = ?
       WHERE id = ?
     `).run(progresso, motivo, prioridade, proximaAcao, clinicaId);

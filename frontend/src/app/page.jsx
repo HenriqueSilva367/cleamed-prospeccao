@@ -131,7 +131,7 @@ export default function Home() {
   const [filtroBairro, setFiltroBairro] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroIa, setFiltroIa] = useState('todos');
-  const [form, setForm] = useState({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', lead_priority: 'LOW' });
+  const [form, setForm] = useState({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: null });
   const [editandoId, setEditandoId] = useState(null);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -152,7 +152,7 @@ export default function Home() {
     nome_dono: '',
     sistema_atual: '',
     dor_detectada: '',
-    lead_priority: 'HIGH'
+    sales_priority: 'HIGH'
   });
   const [salvandoFollowup, setSalvandoFollowup] = useState(false);
 
@@ -167,7 +167,7 @@ export default function Home() {
       nome_dono: c.nome_dono || '',
       sistema_atual: c.sistema_atual || '',
       dor_detectada: c.dor_detectada || '',
-      lead_priority: c.lead_priority || 'HIGH'
+      sales_priority: c.sales_priority || 'HIGH'
     });
   };
 
@@ -374,7 +374,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
       || c.tel?.includes(q) || c.email?.toLowerCase().includes(q) || c.endereco?.toLowerCase().includes(q)
       || cat.includes(q);
     const matchStatus = filtroStatus === 'todos' ? (mostrarDesativados ? true : c.status !== 'disabled') : c.status === filtroStatus;
-    const matchPrioridade = !filtroPrioridade || (c.lead_priority || 'LOW') === filtroPrioridade;
+    const matchPrioridade = !filtroPrioridade || (c.sales_priority || 'LOW') === filtroPrioridade;
     const matchBairro = !filtroBairro || c.bairro === filtroBairro;
     const matchCategoria = !filtroCategoria || (c.categoria || '') === filtroCategoria;
     const matchIa = filtroIa === 'todos' ? true : (filtroIa === 'pausada' ? c.ia_ativa === 0 : (c.ia_ativa !== 0));
@@ -383,8 +383,8 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
 
   const filtradasOrdenadas = [...filtradas].sort((a, b) => {
     const priorityOrder = { HIGH: 1, MEDIUM: 2, LOW: 3 };
-    const pA = priorityOrder[a.lead_priority] || 3;
-    const pB = priorityOrder[b.lead_priority] || 3;
+    const pA = priorityOrder[a.sales_priority] || 3;
+    const pB = priorityOrder[b.sales_priority] || 3;
     if (pA !== pB) return pA - pB;
     const scoreDiff = Number(b.fit_score || 0) - Number(a.fit_score || 0);
     if (scoreDiff !== 0) return scoreDiff;
@@ -392,7 +392,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
   });
 
   function novoForm() {
-    setForm({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', lead_priority: 'LOW' });
+    setForm({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: null });
     setEditandoId(null);
     setMostrarForm(true);
   }
@@ -407,7 +407,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
       site: c.site||'', 
       avaliacao: c.avaliacao||'',
       categoria: c.categoria||'',
-      lead_priority: c.lead_priority||'LOW'
+      sales_priority: c.sales_priority||'LOW'
     });
     setEditandoId(c.id);
     setMostrarForm(true);
@@ -432,7 +432,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
       await fetchClinicas();
       setMostrarForm(false);
       setEditandoId(null);
-      setForm({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', lead_priority: 'LOW' });
+      setForm({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: null });
     } catch(e) { alert('Erro ao salvar.'); }
     setSalvando(false);
   }
@@ -538,17 +538,17 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
               <div className="bg-red-50/50 border border-red-100 rounded-lg p-3 text-center cursor-pointer hover:bg-red-50 hover:shadow-sm transition-all"
                    onClick={() => { setTab('clinicas'); setFiltroStatus('todos'); setFiltroPrioridade('HIGH'); setBusca(''); }}>
                 <span className="text-[10px] font-bold text-red-600 block">🔥 ALTA</span>
-                <span className="text-2xl font-black text-red-700">{clinicas.filter(c => c.lead_priority === 'HIGH').length}</span>
+                <span className="text-2xl font-black text-red-700">{clinicas.filter(c => c.sales_priority === 'HIGH').length}</span>
               </div>
               <div className="bg-orange-50/50 border border-orange-100 rounded-lg p-3 text-center cursor-pointer hover:bg-orange-50 hover:shadow-sm transition-all"
                    onClick={() => { setTab('clinicas'); setFiltroStatus('todos'); setFiltroPrioridade('MEDIUM'); setBusca(''); }}>
                 <span className="text-[10px] font-bold text-orange-600 block">⚡ MÉDIA</span>
-                <span className="text-2xl font-black text-orange-700">{clinicas.filter(c => c.lead_priority === 'MEDIUM').length}</span>
+                <span className="text-2xl font-black text-orange-700">{clinicas.filter(c => c.sales_priority === 'MEDIUM').length}</span>
               </div>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center cursor-pointer hover:bg-gray-100 hover:shadow-sm transition-all"
                    onClick={() => { setTab('clinicas'); setFiltroStatus('todos'); setFiltroPrioridade('LOW'); setBusca(''); }}>
                 <span className="text-[10px] font-bold text-gray-500 block">💤 BAIXA</span>
-                <span className="text-2xl font-black text-gray-700">{clinicas.filter(c => c.lead_priority === 'LOW' || !c.lead_priority).length}</span>
+                <span className="text-2xl font-black text-gray-700">{clinicas.filter(c => c.sales_priority === 'LOW' || !c.sales_priority).length}</span>
               </div>
             </div>
           </div>
@@ -559,19 +559,19 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
             <div className="grid grid-cols-4 gap-2 text-center">
               <div className="bg-blue-50/30 border border-blue-100 rounded-lg p-2.5">
                 <span className="text-[9px] font-semibold text-blue-600 block leading-tight">1. Humanizado</span>
-                <span className="text-xl font-bold text-blue-700">{clinicas.filter(c => c.lead_priority === 'HIGH' && ['reply', 'diagnostico', 'proposta', 'converted'].includes(c.status)).length}</span>
+                <span className="text-xl font-bold text-blue-700">{clinicas.filter(c => c.sales_priority === 'HIGH' && ['reply', 'diagnostico', 'proposta', 'converted'].includes(c.status)).length}</span>
               </div>
               <div className="bg-purple-50/30 border border-purple-100 rounded-lg p-2.5">
                 <span className="text-[9px] font-semibold text-purple-600 block leading-tight">2. Demonstração</span>
-                <span className="text-xl font-bold text-purple-700">{clinicas.filter(c => c.lead_priority === 'HIGH' && ['diagnostico', 'proposta', 'converted'].includes(c.status)).length}</span>
+                <span className="text-xl font-bold text-purple-700">{clinicas.filter(c => c.sales_priority === 'HIGH' && ['diagnostico', 'proposta', 'converted'].includes(c.status)).length}</span>
               </div>
               <div className="bg-pink-50/30 border border-pink-100 rounded-lg p-2.5">
                 <span className="text-[9px] font-semibold text-pink-600 block leading-tight">3. Proposta</span>
-                <span className="text-xl font-bold text-pink-700">{clinicas.filter(c => c.lead_priority === 'HIGH' && ['proposta', 'converted'].includes(c.status)).length}</span>
+                <span className="text-xl font-bold text-pink-700">{clinicas.filter(c => c.sales_priority === 'HIGH' && ['proposta', 'converted'].includes(c.status)).length}</span>
               </div>
               <div className="bg-green-50/30 border border-green-100 rounded-lg p-2.5">
                 <span className="text-[9px] font-semibold text-green-600 block leading-tight">4. Venda</span>
-                <span className="text-xl font-bold text-green-700">{clinicas.filter(c => c.lead_priority === 'HIGH' && c.status === 'converted').length}</span>
+                <span className="text-xl font-bold text-green-700">{clinicas.filter(c => c.sales_priority === 'HIGH' && c.status === 'converted').length}</span>
               </div>
             </div>
           </div>
@@ -676,7 +676,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
 
           const aplicaFiltroPipeline = (c) => {
             if (filtroPipeline === 'atrasados') return c.proxima_acao_data && new Date(c.proxima_acao_data) <= new Date();
-            if (filtroPipeline === 'high') return c.lead_priority === 'HIGH';
+            if (filtroPipeline === 'high') return c.sales_priority === 'HIGH';
             if (filtroPipeline === 'manual') return c.progresso_lead === 'QUALIFICADO_DOR' || Boolean(c.dor_detectada && c.dor_detectada.trim());
             if (filtroPipeline === 'indicacao') return c.status === 'indicou_responsavel' || c.progresso_lead === 'INDICOU_RESPONSAVEL';
             return true;
@@ -747,7 +747,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                   const colLeads = clinicas.filter(c => col.match(c) && aplicaFiltroPipeline(c))
                     .sort((a, b) => {
                       const pOrder = { HIGH: 1, MEDIUM: 2, LOW: 3 };
-                      const diffP = (pOrder[a.lead_priority] || 3) - (pOrder[b.lead_priority] || 3);
+                      const diffP = (pOrder[a.sales_priority] || 3) - (pOrder[b.sales_priority] || 3);
                       if (diffP !== 0) return diffP;
                       return (b.fit_score || 0) - (a.fit_score || 0);
                     });
@@ -777,18 +777,19 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                                 <div className="text-[11px] text-gray-500">{maskPhone(c.tel) || '—'}</div>
                               </div>
                               <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ml-1 ${
-                                c.lead_priority === 'HIGH' ? 'bg-red-50 text-red-700' :
-                                c.lead_priority === 'MEDIUM' ? 'bg-orange-50 text-orange-700' :
+                                c.sales_priority === 'HIGH' ? 'bg-red-50 text-red-700' :
+                                c.sales_priority === 'MEDIUM' ? 'bg-orange-50 text-orange-700' :
                                 'bg-gray-50 text-gray-500'
                               }`}>
-                                {c.lead_priority === 'HIGH' ? '🔥' : c.lead_priority === 'MEDIUM' ? '⚡' : '💤'}
+                                {c.sales_priority === 'HIGH' ? '🔥' : c.sales_priority === 'MEDIUM' ? '⚡' : '💤'}
                               </span>
                             </div>
                             {/* Category & Score & Toggle IA */}
                             <div className="flex items-center gap-2 mb-2 flex-wrap justify-between">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 {c.categoria && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{c.categoria.length > 18 ? c.categoria.slice(0, 18) + '..' : c.categoria}</span>}
-                                <span className="text-[10px] text-gray-400 font-medium">{c.fit_score || 0}/100</span>
+                                <span className="text-[10px] text-gray-400 font-medium">Fit {c.fit_score || 0}/100 · {c.sales_priority === 'HIGH' ? 'Urgência alta' : c.sales_priority === 'MEDIUM' ? 'Urgência média' : 'Urgência baixa'}</span>
+                                <span className="text-[9px] text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">Adequação {c.lead_priority === 'HIGH' ? 'alta' : c.lead_priority === 'MEDIUM' ? 'média' : 'baixa'}</span>
                               </div>
                               <button
                                 onClick={(e) => {
@@ -1420,9 +1421,9 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                     </div>
                   ))}
                   <div className="">
-                    <label className="block text-xs text-gray-500 mb-1">Prioridade</label>
-                    <select value={form.lead_priority || 'LOW'} 
-                      onChange={e => setForm({ ...form, lead_priority: e.target.value })}
+                    <label className="block text-xs text-gray-500 mb-1">Prioridade comercial</label>
+                    <select value={form.sales_priority || 'LOW'} 
+                      onChange={e => setForm({ ...form, sales_priority: e.target.value })}
                       className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-gray-300"
                     >
                       <option value="HIGH">🔥 ALTA</option>
@@ -1497,7 +1498,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
                     <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Nome</th>
-                    <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Score</th>
+                    <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Prioridade comercial / Fit</th>
                     <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Categoria</th>
                     <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Contato</th>
                     <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Local (Bairro/Cidade)</th>
@@ -1559,15 +1560,15 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                       </td>
                       <td className="px-4 py-4">
                         <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold shadow-sm whitespace-nowrap border ${
-                          c.lead_priority === 'HIGH' ? 'bg-red-50 text-red-700 border-red-200' :
-                          c.lead_priority === 'MEDIUM' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                          c.sales_priority === 'HIGH' ? 'bg-red-50 text-red-700 border-red-200' :
+                          c.sales_priority === 'MEDIUM' ? 'bg-orange-50 text-orange-700 border-orange-200' :
                           'bg-gray-50 text-gray-500 border-gray-200'
                         }`}>
-                          {c.lead_priority === 'HIGH' ? '🔥 ALTA' :
-                           c.lead_priority === 'MEDIUM' ? '⚡ MÉDIA' :
+                          {c.sales_priority === 'HIGH' ? '🔥 ALTA' :
+                           c.sales_priority === 'MEDIUM' ? '⚡ MÉDIA' :
                            '💤 BAIXA'}
                         </span>
-                        <div className="text-[11px] text-gray-500 mt-1 font-semibold">{Number(c.fit_score || 0)}/100</div>
+                        <div className="text-[11px] text-gray-500 mt-1 font-semibold">{Number(c.fit_score || 0)}/100 · Adequação {c.lead_priority === 'HIGH' ? 'alta' : c.lead_priority === 'MEDIUM' ? 'média' : 'baixa'}</div>
                         {c.score_reason && <div className="text-[10px] text-gray-400 mt-0.5 max-w-[150px] truncate" title={c.score_reason}>{c.score_reason}</div>}
                       </td>
                       <td className="px-4 py-4">
@@ -2347,10 +2348,10 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridade</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridade comercial</label>
                   <select
-                    value={followupForm.lead_priority}
-                    onChange={e => setFollowupForm(p => ({ ...p, lead_priority: e.target.value }))}
+                    value={followupForm.sales_priority}
+                    onChange={e => setFollowupForm(p => ({ ...p, sales_priority: e.target.value }))}
                     className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900"
                   >
                     <option value="HIGH">🔥 ALTA</option>

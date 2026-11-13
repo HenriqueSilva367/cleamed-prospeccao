@@ -2,6 +2,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const db = require('./db/database');
 const { registrarHandoff, marcarHandoffNotificado } = require('./handoff');
+const { applyLeadScore } = require('./lead-scoring');
 const { gerarResposta, extrairRespostasDaConversa, classificarPrioridadeDaConversa, extrairContatoIndicacao, analisarEAtualizarProgressoLead, detectAutoResponder } = require('./ia');
 const { recomendarPlano, gerarOverview, gerarROI, gerarProposal, gerarCompetitorAnalysis, gerarStrategyHTML } = require('./gerador-diagnostico');
 const fs = require('fs');
@@ -384,7 +385,7 @@ function initWhatsApp() {
                             messageDebouncers.delete(lead.id);
                         }
                         if (['sent', 'pending', 'paused_site', 'interviewing'].includes(leadAtualizado.status)) {
-                            db.prepare("UPDATE clinicas SET status = 'reply', last_contact_at = datetime('now') WHERE id = ?").run(lead.id);
+                            db.prepare("UPDATE clinicas SET status = 'reply', last_contact_at = datetime('now'), sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE 'MEDIUM' END WHERE id = ?").run(lead.id);
                             logDebug(`[WhatsApp-Inbox] Mensagem recebida de ${lead.nome}, mas IA está desativada para este cliente. Status definido como 'reply' para atendimento humano.`);
                         } else {
                             logDebug(`[WhatsApp-Inbox] Mensagem recebida de ${lead.nome}, mas IA está desativada para este cliente. Nenhuma interferência automática.`);
@@ -503,16 +504,25 @@ function initWhatsApp() {
                                         let novoLead = db.prepare('SELECT * FROM clinicas WHERE tel = ? OR whatsapp_id = ? LIMIT 1').get(indicacao.phone, indicacao.phone + '@c.us');
                                     if (!novoLead) {
                                         const nomeNovoLead = `${currentLead.nome} - ${indicacao.nomeResponsavel}`;
+                                        const leadIndicado = applyLeadScore({
+                                            nome: nomeNovoLead,
+                                            tel: indicacao.phone,
+                                            cidade: currentLead.cidade || '',
+                                            categoria: currentLead.categoria || '',
+                                            bairro: currentLead.bairro || ''
+                                        });
                                         const res = db.prepare(`
-                                            INSERT INTO clinicas (nome, tel, cidade, categoria, bairro, status, origem, fit_score, lead_priority, score_reason)
-                                            VALUES (?, ?, ?, ?, ?, 'pending', 'indicacao_recepcao', 95, 'HIGH', ?)
+                                            INSERT INTO clinicas (nome, tel, cidade, categoria, bairro, status, origem, fit_score, lead_priority, score_reason, sales_priority, sales_priority_source)
+                                            VALUES (?, ?, ?, ?, ?, 'pending', 'indicacao_recepcao', ?, ?, ?, 'HIGH', 'auto')
                                         `).run(
                                             nomeNovoLead,
                                             indicacao.phone,
                                             currentLead.cidade || '',
                                             currentLead.categoria || '',
                                             currentLead.bairro || '',
-                                            `Indicação direta da recepção da clínica ${currentLead.nome}`
+                                            leadIndicado.fit_score,
+                                            leadIndicado.lead_priority,
+                                            'Indicação direta da recepção da clínica ' + currentLead.nome + '; ' + leadIndicado.score_reason
                                         );
                                         novoLead = db.prepare('SELECT * FROM clinicas WHERE id = ?').get(res.lastInsertRowid);
                                     }
@@ -616,7 +626,7 @@ function initWhatsApp() {
 
                                                 const classif = await classificarPrioridadeDaConversa(ultimasMensagens);
                                                 if (classif && classif.priority) {
-                                                    db.prepare("UPDATE clinicas SET lead_priority = ? WHERE id = ?").run(classif.priority, currentLead.id);
+                                                    db.prepare("UPDATE clinicas SET sales_priority = ? WHERE id = ? AND IFNULL(sales_priority_source, 'auto') != 'manual'").run(classif.priority, currentLead.id);
                                                     logDebug(`[WhatsApp-Inbox] Lead ${currentLead.nome} classificado como prioridade ${classif.priority}. Motivo: ${classif.reason}`);
                                                 }
 
@@ -663,14 +673,14 @@ function initWhatsApp() {
                                             `);
                                             stmt.run(currentLead.id, JSON.stringify(respostas), overview, roi, proposal, competitor, strategyHtml, plano);
                                             
-                                            db.prepare("UPDATE clinicas SET status = 'diagnostico' WHERE id = ?").run(currentLead.id);
+                                            db.prepare("UPDATE clinicas SET status = 'diagnostico', sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE 'HIGH' END WHERE id = ?").run(currentLead.id);
                                             logDebug(`[WhatsApp-Inbox] Diagnóstico gerado com sucesso para ${currentLead.nome}! Status mudou para diagnostico.`);
                                             
                                             const diagReadyMsg = "Seu diagnóstico está pronto! Um de nossos especialistas vai te enviar a apresentação por aqui mesmo para vocês analisarem juntos.";
                                             await enviarMensagem(currentLead.id, currentLead.tel, diagReadyMsg);
                                         } else {
                                             logDebug(`[WhatsApp-Inbox] Erro ao extrair respostas da conversa.`);
-                                            db.prepare("UPDATE clinicas SET status = 'reply' WHERE id = ?").run(currentLead.id);
+                                            db.prepare("UPDATE clinicas SET status = 'reply', sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE 'MEDIUM' END WHERE id = ?").run(currentLead.id);
                                         }
                                     } else {
                                         logDebug(`[WhatsApp-Inbox] Resposta do robô: ${respostaIA}`);

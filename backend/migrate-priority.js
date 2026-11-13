@@ -84,7 +84,7 @@ async function run() {
         
         // Se a prioridade for diferente de LOW, atualiza no banco
         if (priority !== 'LOW') {
-            db.prepare("UPDATE clinicas SET lead_priority = ? WHERE id = ?").run(priority, c.id);
+            db.prepare("UPDATE clinicas SET sales_priority = ?, sales_priority_source = 'auto' WHERE id = ? AND IFNULL(sales_priority_source, 'auto') != 'manual'").run(priority, c.id);
             atualizados++;
         }
     }

@@ -207,9 +207,7 @@ function applyLeadScore(lead = {}) {
   return {
     ...lead,
     fit_score: scored.fit_score,
-    lead_priority: lead.lead_priority && lead.lead_priority !== 'LOW' && scored.fit_score > 0
-      ? lead.lead_priority
-      : scored.lead_priority,
+    lead_priority: scored.lead_priority,
     score_reason: scored.score_reason
   };
 }
