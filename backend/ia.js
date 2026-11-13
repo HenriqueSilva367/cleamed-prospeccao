@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./ia-config.json');
 const db = require('./db/database');
+const { deriveSalesPriority } = require('./sales-priority');
 
 // Inicialização dinâmica da API da OpenAI
 function getOpenAI() {
@@ -475,6 +476,8 @@ function analisarEAtualizarProgressoLead(clinicaId, historicoConversa) {
     prioridade = 'MEDIUM';
     proximaAcao = 'Investigar a dificuldade relatada antes de apresentar uma solução';
   }
+
+  prioridade = deriveSalesPriority({ progresso_lead: progresso });
 
   // Atualiza no SQLite
   try {
