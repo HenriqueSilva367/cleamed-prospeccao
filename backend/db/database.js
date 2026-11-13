@@ -182,6 +182,10 @@ try {
   db.exec("ALTER TABLE clinicas ADD COLUMN ia_ativa INTEGER DEFAULT 1;"); // 1 = IA ativa, 0 = sem interferência da IA (manual)
 } catch (e) {}
 
+try { db.exec("ALTER TABLE clinicas ADD COLUMN handoff_at TEXT;"); } catch (e) {}
+try { db.exec("ALTER TABLE clinicas ADD COLUMN handoff_reason TEXT;"); } catch (e) {}
+try { db.exec("ALTER TABLE clinicas ADD COLUMN handoff_notified_at TEXT;"); } catch (e) {}
+
 db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_clinicas_google_place_id ON clinicas(google_place_id);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_clinicas_status_score ON clinicas(status, fit_score, lead_priority);`);
 
