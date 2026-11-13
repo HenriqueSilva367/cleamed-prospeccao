@@ -31,9 +31,11 @@ test('conta somente envios do piloto e follow-ups no dia local atual', () => {
     const window = localDayWindow(new Date(2026, 10, 13, 12, 0, 0));
     const insert = db.prepare('INSERT INTO messages (direction, source, timestamp) VALUES (?, ?, ?)');
     insert.run('outbound', 'autopilot', window.startUtc);
-    insert.run('outbound', 'followup', '2026-11-13 15:00:00');
-    insert.run('outbound', 'whatsapp_app', '2026-11-13 15:10:00');
-    insert.run('inbound', 'autopilot', '2026-11-13 15:20:00');
+    const oneHourAfterStart = new Date(Date.parse(window.startUtc.replace(' ', 'T') + 'Z') + 60 * 60 * 1000)
+      .toISOString().slice(0, 19).replace('T', ' ');
+    insert.run('outbound', 'followup', oneHourAfterStart);
+    insert.run('outbound', 'whatsapp_app', oneHourAfterStart);
+    insert.run('inbound', 'autopilot', oneHourAfterStart);
     insert.run('outbound', 'autopilot', window.endUtc);
 
     assert.deepEqual(getDailyStats(db, new Date(2026, 10, 13, 12, 0, 0)), {
