@@ -1222,6 +1222,14 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                     Status Atual: <span className={autopilotStatus.isOn ? 'text-emerald-600 font-bold' : 'text-gray-400'}>{autopilotStatus.isOn ? 'RODANDO' : 'DESLIGADO'}</span>
                   </div>
                   <div className="mt-1 text-xs text-gray-500 text-center px-4">{autopilotStatus.currentTask}</div>
+                  <div className="mt-3 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 text-center">
+                    <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">Envios automáticos hoje</div>
+                    <div className="text-xl font-bold text-gray-900 tabular-nums">
+                      {autopilotStatus.dailyStats?.sentCount ?? 0}
+                      <span className="text-sm text-gray-400 font-medium"> / {autopilotStatus.dailyLimit ?? autoConfig.limite_diario_envios ?? 40}</span>
+                    </div>
+                    <div className="text-[10px] text-gray-400">Contagem recuperada do histórico salvo</div>
+                  </div>
                 </div>
               </div>
             </div>
