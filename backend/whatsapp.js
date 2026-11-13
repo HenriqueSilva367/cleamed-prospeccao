@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const db = require('./db/database');
+const { registrarHandoff, marcarHandoffNotificado } = require('./handoff');
 const { gerarResposta, extrairRespostasDaConversa, classificarPrioridadeDaConversa, extrairContatoIndicacao, analisarEAtualizarProgressoLead, detectAutoResponder } = require('./ia');
 const { recomendarPlano, gerarOverview, gerarROI, gerarProposal, gerarCompetitorAnalysis, gerarStrategyHTML } = require('./gerador-diagnostico');
 const fs = require('fs');
@@ -91,24 +92,39 @@ process.on('SIGTERM', async () => {
     process.exit(0);
 });
 
-// Notificar vendedor quando lead entra em reply (hand-off)
-async function notificarVendedor(lead) {
+// Notifica o responsável somente quando há um handoff humano registrado.
+async function notificarVendedor(lead, context = {}) {
     try {
         const row = db.prepare("SELECT valor FROM configuracoes WHERE chave = 'whatsapp_vendedor'").get();
-        const numVendedor = row?.valor?.replace(/\D/g, '');
-        if (!numVendedor || numVendedor.length < 10 || !isReady) return;
+        const numVendedor = row?.valor?.replace(/\\D/g, '');
+        if (!numVendedor || numVendedor.length < 10) return { sent: false, reason: 'Número do responsável não configurado.' };
+        if (!isReady || !client) return { sent: false, reason: 'WhatsApp da CleanMed não está conectado.' };
 
-        let chatIdVendedor = numVendedor;
-        if (chatIdVendedor.length === 10 || chatIdVendedor.length === 11) chatIdVendedor = '55' + chatIdVendedor;
-        chatIdVendedor = chatIdVendedor + '@c.us';
-
-        const tel = lead.tel ? lead.tel.replace(/\D/g, '') : 'N/A';
-        const msg = `\u{1F514} *LEAD QUENTE!*\n\n*${lead.nome}* acabou de responder!\nTel: ${tel}\nCategoria: ${lead.categoria || 'N/A'}\nScore: ${lead.fit_score || 0}/100\n\nAbra o painel para atender agora.`;
+        let numero = numVendedor;
+        if (numero.length === 10 || numero.length === 11) numero = '55' + numero;
+        const chatIdVendedor = numero + '@c.us';
+        const tel = lead.tel ? lead.tel.replace(/\\D/g, '') : 'N/A';
+        const resumo = String(context.lastMessage || '').replace(/\\s+/g, ' ').trim().slice(0, 220);
+        const motivo = lead.handoff_reason || 'A IA solicitou atendimento humano.';
+        const msg = [
+            '🔔 *ATENDIMENTO HUMANO SOLICITADO*',
+            '',
+            '*' + lead.nome + '*',
+            'Telefone: ' + tel,
+            'Motivo: ' + motivo,
+            resumo ? 'Última mensagem: ' + resumo : '',
+            'Categoria: ' + (lead.categoria || 'N/A'),
+            'Fit score: ' + (lead.fit_score || 0) + '/100',
+            '',
+            'A IA foi pausada para este lead. Abra o painel e assuma a conversa.'
+        ].filter(Boolean).join('\n');
 
         await client.sendMessage(chatIdVendedor, msg);
-        logDebug(`[WhatsApp] Notificação enviada ao vendedor para lead ${lead.nome}.`);
+        logDebug('[WhatsApp] Handoff notificado para o responsável: ' + lead.nome + '.');
+        return { sent: true };
     } catch (err) {
-        logDebug(`[WhatsApp] Erro ao notificar vendedor: ${err.message}`);
+        logDebug('[WhatsApp] Erro ao notificar handoff: ' + err.message);
+        return { sent: false, reason: err.message || 'Falha ao enviar notificação.' };
     }
 }
 
@@ -533,15 +549,9 @@ function initWhatsApp() {
                                     return; // Encerra processamento para o chat da atendente
                                 }
 
-                                const progressoAntes = currentLead.progresso_lead || 'PENDENTE';
-                                const novoProgresso = analisarEAtualizarProgressoLead(currentLead.id, ultimasMensagens);
-                                if (
-                                    novoProgresso &&
-                                    ['QUALIFICADO_DOR', 'INTERESSE_ALTO'].includes(novoProgresso.progresso) &&
-                                    !['QUALIFICADO_DOR', 'INTERESSE_ALTO'].includes(progressoAntes)
-                                ) {
-                                    notificarVendedor(currentLead);
-                                }
+                                // Atualiza a qualificação; notificação ao vendedor ocorre somente no handoff explícito.
+                                analisarEAtualizarProgressoLead(currentLead.id, ultimasMensagens);
+
 
                                 const respostaIA = await gerarResposta(currentLead, ultimasMensagens);
                                 
@@ -557,11 +567,26 @@ function initWhatsApp() {
 
                                 if (respostaIA) {
                                     if (respostaIA.includes('[PASSAR_PARA_HUMANO]')) {
-                                        logDebug(`[WhatsApp-Inbox] IA solicitou handoff humano. Status mudando para 'reply' e pausando IA.`);
-                                        db.prepare("UPDATE clinicas SET status = 'reply', ia_ativa = 0 WHERE id = ?").run(currentLead.id);
-                                        
-                                        // Notificar vendedor imediatamente
-                                        notificarVendedor(currentLead);
+                                        const ultimaMsgLead = [...ultimasMensagens].reverse().find(m => !m.fromMe)?.body || '';
+                                        const motivoHandoff = ultimaMsgLead
+                                            ? 'Solicitação de atendimento humano: ' + ultimaMsgLead.replace(/\\s+/g, ' ').trim().slice(0, 220)
+                                            : 'A IA solicitou atendimento humano.';
+                                        const novoHandoff = registrarHandoff(db, currentLead.id, motivoHandoff);
+
+                                        if (novoHandoff) {
+                                            logDebug('[WhatsApp-Inbox] Handoff registrado para ' + currentLead.nome + '; IA pausada.');
+                                            const notificacao = await notificarVendedor(
+                                                { ...currentLead, handoff_reason: motivoHandoff },
+                                                { lastMessage: ultimaMsgLead }
+                                            );
+                                            if (notificacao.sent) {
+                                                marcarHandoffNotificado(db, currentLead.id);
+                                            } else {
+                                                logDebug('[WhatsApp-Inbox] Handoff salvo, mas notificação pendente: ' + notificacao.reason);
+                                            }
+                                        } else {
+                                            logDebug('[WhatsApp-Inbox] Handoff já registrado para ' + currentLead.nome + '; evitando duplicação.');
+                                        }
                                         
                                         // Processamento pós-handoff assíncrono para extração de respostas e priorização
                                         (async () => {
