@@ -997,9 +997,9 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                   <div key={item.id} className="flex gap-3 items-start border-l-2 border-indigo-200 pl-3 py-1">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-800">
-                        {STATUS_LABELS[item.old_status] || item.old_status || 'Cadastro inicial'}
+                        {STATUS[item.old_status] || item.old_status || 'Cadastro inicial'}
                         <span className="text-gray-400 font-normal mx-2">→</span>
-                        {STATUS_LABELS[item.new_status] || item.new_status}
+                        {STATUS[item.new_status] || item.new_status}
                       </p>
                       <p className="text-[11px] text-gray-400 mt-1">{new Date(item.changed_at + (item.changed_at.endsWith('Z') ? '' : 'Z')).toLocaleString('pt-BR')}</p>
                     </div>
