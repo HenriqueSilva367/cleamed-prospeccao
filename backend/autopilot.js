@@ -424,7 +424,7 @@ async function runLoop() {
         const blCheck = isBlacklistedLead(lead);
         if (blCheck.blocked) {
             addLog(`⛔ Desativando lead fora do perfil: ${lead.nome} (${blCheck.reason}).`);
-            db.prepare("UPDATE clinicas SET status = 'disabled', fit_score = 0, lead_priority = 'LOW', score_reason = ? WHERE id = ?")
+            db.prepare("UPDATE clinicas SET status = 'disabled', fit_score = 0, lead_priority = 'LOW', sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE 'LOW' END, score_reason = ? WHERE id = ?")
                 .run(`bloqueado: ${blCheck.reason}`, lead.id);
             isLoopRunning = false;
             loopTimeout = setTimeout(runLoop, 1000);
