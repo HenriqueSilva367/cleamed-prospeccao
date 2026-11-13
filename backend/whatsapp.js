@@ -626,7 +626,7 @@ function initWhatsApp() {
 
                                                 const classif = await classificarPrioridadeDaConversa(ultimasMensagens);
                                                 if (classif && classif.priority) {
-                                                    db.prepare("UPDATE clinicas SET sales_priority = ?, sales_priority_source = CASE WHEN sales_priority_source = 'manual' THEN sales_priority_source ELSE 'auto' END WHERE id = ? AND IFNULL(sales_priority_source, 'auto') != 'manual'").run(classif.priority, currentLead.id);
+                                                    db.prepare("UPDATE clinicas SET sales_priority = ? WHERE id = ? AND IFNULL(sales_priority_source, 'auto') != 'manual'").run(classif.priority, currentLead.id);
                                                     logDebug(`[WhatsApp-Inbox] Lead ${currentLead.nome} classificado como prioridade ${classif.priority}. Motivo: ${classif.reason}`);
                                                 }
 
@@ -673,14 +673,14 @@ function initWhatsApp() {
                                             `);
                                             stmt.run(currentLead.id, JSON.stringify(respostas), overview, roi, proposal, competitor, strategyHtml, plano);
                                             
-                                            db.prepare("UPDATE clinicas SET status = 'diagnostico' WHERE id = ?").run(currentLead.id);
+                                            db.prepare("UPDATE clinicas SET status = 'diagnostico', sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE 'HIGH' END WHERE id = ?").run(currentLead.id);
                                             logDebug(`[WhatsApp-Inbox] Diagnóstico gerado com sucesso para ${currentLead.nome}! Status mudou para diagnostico.`);
                                             
                                             const diagReadyMsg = "Seu diagnóstico está pronto! Um de nossos especialistas vai te enviar a apresentação por aqui mesmo para vocês analisarem juntos.";
                                             await enviarMensagem(currentLead.id, currentLead.tel, diagReadyMsg);
                                         } else {
                                             logDebug(`[WhatsApp-Inbox] Erro ao extrair respostas da conversa.`);
-                                            db.prepare("UPDATE clinicas SET status = 'reply' WHERE id = ?").run(currentLead.id);
+                                            db.prepare("UPDATE clinicas SET status = 'reply', sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE 'MEDIUM' END WHERE id = ?").run(currentLead.id);
                                         }
                                     } else {
                                         logDebug(`[WhatsApp-Inbox] Resposta do robô: ${respostaIA}`);
