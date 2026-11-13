@@ -1302,9 +1302,9 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                           className="px-4 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100">
                           Registrar retorno feito
                         </button>
-                        <button onClick={() => carregarHistoricoFollowup(item)}
-                          className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50">
-                          Ver histórico
+                        <button onClick={() => carregarHistoricoFollowup(item)} disabled={loadingFollowupHistory[item.id]}
+                          className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50">
+                          {loadingFollowupHistory[item.id] ? 'Carregando...' : 'Ver histórico'}
                         </button>
                       </div>
                       </div>
