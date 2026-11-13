@@ -167,8 +167,8 @@ function buscarProximoLeadPendente(pausedCategories) {
 
     queryStr += `
         ORDER BY
-          CASE lead_priority WHEN 'HIGH' THEN 3 WHEN 'MEDIUM' THEN 2 ELSE 1 END DESC,
           fit_score DESC,
+          CASE sales_priority WHEN 'HIGH' THEN 3 WHEN 'MEDIUM' THEN 2 ELSE 1 END DESC,
           CASE
             WHEN IFNULL(total_avaliacoes, 0) BETWEEN 3 AND 65 THEN 3
             WHEN IFNULL(total_avaliacoes, 0) < 3 THEN 2
@@ -207,7 +207,7 @@ function buscarLeadFollowup() {
             (IFNULL(followup_stage, 0) = 3 AND datetime(IFNULL(last_followup_at, last_contact_at), '+' || ? || ' days') <= datetime('now'))
           )
         ORDER BY
-          CASE lead_priority WHEN 'HIGH' THEN 3 WHEN 'MEDIUM' THEN 2 ELSE 1 END DESC,
+          CASE sales_priority WHEN 'HIGH' THEN 3 WHEN 'MEDIUM' THEN 2 ELSE 1 END DESC,
           fit_score DESC,
           id ASC
         LIMIT 1
