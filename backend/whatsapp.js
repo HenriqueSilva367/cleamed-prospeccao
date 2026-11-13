@@ -568,9 +568,11 @@ function initWhatsApp() {
                                 if (respostaIA) {
                                     if (respostaIA.includes('[PASSAR_PARA_HUMANO]')) {
                                         const ultimaMsgLead = [...ultimasMensagens].reverse().find(m => !m.fromMe)?.body || '';
-                                        const motivoHandoff = ultimaMsgLead
-                                            ? 'Solicitação de atendimento humano: ' + ultimaMsgLead.replace(/\s+/g, ' ').trim().slice(0, 220)
-                                            : 'A IA solicitou atendimento humano.';
+                                        const textoHandoff = ultimaMsgLead.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                        let motivoHandoff = 'A IA identificou necessidade de atendimento humano.';
+                                        if (/quanto custa|preco|valor/.test(textoHandoff)) motivoHandoff = 'Pergunta sobre preço ou valores.';
+                                        else if (/demonstracao|demo|reuniao|teste gratis|quero testar/.test(textoHandoff)) motivoHandoff = 'Solicitação de demonstração, reunião ou teste.';
+                                        else if (/tenho interesse|quero conhecer|quero contratar|quero saber mais/.test(textoHandoff)) motivoHandoff = 'Interesse comercial explícito.';
                                         const novoHandoff = registrarHandoff(db, currentLead.id, motivoHandoff);
 
                                         if (novoHandoff) {
