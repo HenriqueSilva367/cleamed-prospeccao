@@ -157,6 +157,10 @@ export default function Home() {
     sales_priority: 'HIGH'
   });
   const [salvandoFollowup, setSalvandoFollowup] = useState(false);
+  const [followupQueue, setFollowupQueue] = useState({ enabled: false, scheduleDays: [], total: 0, returned: 0, items: [] });
+  const [loadingFollowupQueue, setLoadingFollowupQueue] = useState(false);
+  const [followupQueueError, setFollowupQueueError] = useState('');
+
 
   const abrirModalFollowup = (c) => {
     const dataFormatada = c.proxima_acao_data
@@ -233,6 +237,21 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
         else setAutopilotQr(null);
       }
     } catch (e) { console.error('Erro autopilot status/qr:', e); }
+  }, []);
+
+  const fetchFollowupQueue = useCallback(async () => {
+    setLoadingFollowupQueue(true);
+    setFollowupQueueError('');
+    try {
+      const response = await fetch(`${API}/autopilot/followups?limit=200`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Não foi possível carregar a fila.');
+      setFollowupQueue(data);
+    } catch (error) {
+      setFollowupQueueError(error.message);
+    } finally {
+      setLoadingFollowupQueue(false);
+    }
   }, []);
 
   const fetchAutopilotConfig = useCallback(async () => {
@@ -619,10 +638,11 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 mb-6 overflow-x-auto whitespace-nowrap">
-          {[['clinicas', 'Clínicas'], ['conversas', '💬 Central de Mensagens'], ['pipeline', '📊 Pipeline'], ['autopilot', '🤖 Piloto Automático'], ['disparar', 'Disparar mensagens'], ['mensagem', 'Editar template'], ['acompanhar', 'Acompanhar'], ['desativados', 'Desativados']].map(([id, label]) => (
+          {[['clinicas', 'Clínicas'], ['conversas', '💬 Central de Mensagens'], ['pipeline', '📊 Pipeline'], ['followups', '⏰ Follow-ups'], ['autopilot', '🤖 Piloto Automático'], ['disparar', 'Disparar mensagens'], ['mensagem', 'Editar template'], ['acompanhar', 'Acompanhar'], ['desativados', 'Desativados']].map(([id, label]) => (
             <button key={id} onClick={() => {
               setTab(id);
               if (id === 'conversas') fetchTodasMensagensGlobal(buscaMensagemGlobal);
+              if (id === 'followups') fetchFollowupQueue();
             }}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${tab === id ? 'border-gray-900 text-gray-900 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
               {label}
@@ -630,6 +650,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
               {id === 'desativados' && <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{clinicas.filter(c => c.status === 'disabled').length}</span>}
               {id === 'disparar' && pendentes.length > 0 && <span className="ml-1.5 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{pendentes.length}</span>}
               {id === 'pipeline' && clinicas.filter(c => isQualificadoPipeline(c) && c.status !== 'converted').length > 0 && <span className="ml-1.5 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full animate-pulse">{clinicas.filter(c => isQualificadoPipeline(c) && c.status !== 'converted').length}</span>}
+              {id === 'followups' && followupQueue.total > 0 && <span className="ml-1.5 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{followupQueue.total}</span>}
             </button>
           ))}
         </div>
@@ -1161,6 +1182,98 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* FILA DE FOLLOW-UPS */}
+        {tab === 'followups' && (
+          <div className="space-y-5">
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Fila de follow-ups</h2>
+                  <p className="text-sm text-gray-500 mt-1">Acompanhe os contatos que já chegaram ao prazo de retorno e assuma a conversa manualmente.</p>
+                </div>
+                <button onClick={fetchFollowupQueue} disabled={loadingFollowupQueue}
+                  className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                  {loadingFollowupQueue ? 'Atualizando...' : '↻ Atualizar fila'}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+                <div className="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                  <div className="text-xs text-gray-500">Aguardando retorno</div>
+                  <div className="text-2xl font-bold text-gray-900">{followupQueue.total}</div>
+                </div>
+                <div className="rounded-lg bg-red-50 border border-red-100 p-3">
+                  <div className="text-xs text-red-700">Vencidos</div>
+                  <div className="text-2xl font-bold text-red-700">{followupQueue.items.filter(item => item.due_status === 'overdue').length}</div>
+                </div>
+                <div className="rounded-lg bg-amber-50 border border-amber-100 p-3">
+                  <div className="text-xs text-amber-700">No prazo de hoje</div>
+                  <div className="text-2xl font-bold text-amber-700">{followupQueue.items.filter(item => item.due_status === 'due').length}</div>
+                </div>
+                <div className="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                  <div className="text-xs text-gray-500">Envio automático</div>
+                  <div className="text-sm font-bold text-gray-900 mt-1">{followupQueue.enabled ? 'Habilitado' : 'Desativado'}</div>
+                  <div className="text-[11px] text-gray-500">Esta tela não envia mensagens.</div>
+                </div>
+              </div>
+              {followupQueue.scheduleDays?.length > 0 && (
+                <p className="text-xs text-gray-500 mt-3">Cadência configurada: {followupQueue.scheduleDays.join(' · ')} dias após cada contato.</p>
+              )}
+            </div>
+
+            {followupQueueError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {followupQueueError}
+              </div>
+            )}
+
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="font-bold text-gray-900">Contatos elegíveis para retorno</h3>
+                <span className="text-xs text-gray-500">{followupQueue.returned} de {followupQueue.total} exibidos</span>
+              </div>
+              {loadingFollowupQueue && followupQueue.items.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-500">Carregando fila...</div>
+              ) : followupQueue.items.length === 0 ? (
+                <div className="p-8 text-center">
+                  <div className="text-3xl mb-2">✓</div>
+                  <p className="font-semibold text-gray-800">Nenhum follow-up pendente neste momento.</p>
+                  <p className="text-sm text-gray-500 mt-1">Quando um contato atingir o prazo configurado, ele aparecerá aqui.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {followupQueue.items.map(item => (
+                    <div key={item.id} className="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h4 className="font-bold text-gray-900">{item.nome}</h4>
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${item.due_status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
+                            {item.due_status === 'overdue' ? 'ATRASADO' : 'NO PRAZO'}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${item.sales_priority === 'HIGH' ? 'bg-red-50 text-red-700' : item.sales_priority === 'MEDIUM' ? 'bg-orange-50 text-orange-700' : 'bg-gray-100 text-gray-600'}`}>
+                            Prioridade {item.sales_priority || 'LOW'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600">{maskPhone(item.tel)}{item.categoria ? ` · ${item.categoria}` : ''}{item.cidade ? ` · ${item.cidade}` : ''}</div>
+                        <div className="text-xs text-gray-500 mt-2">
+                          Etapa {Number(item.followup_stage || 0) + 1} · Prazo: {item.due_at ? new Date(item.due_at.replace(' ', 'T') + 'Z').toLocaleString('pt-BR') : '—'}
+                          {item.last_followup_at ? ` · Último follow-up: ${new Date(item.last_followup_at.replace(' ', 'T') + 'Z').toLocaleDateString('pt-BR')}` : ''}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => abrirChatModal(item)}
+                          className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700">
+                          Abrir conversa
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">A fila é informativa. Nenhum contato é acionado automaticamente por esta tela; revise o histórico e decida manualmente se deve enviar uma mensagem.</p>
           </div>
         )}
 
