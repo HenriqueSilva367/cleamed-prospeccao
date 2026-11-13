@@ -472,7 +472,7 @@ function analisarEAtualizarProgressoLead(clinicaId, historicoConversa) {
   ) {
     progresso = 'QUALIFICADO_DOR';
     motivo = 'Lead relatou processo manual ou dificuldade operacional na rotina da clínica';
-    prioridade = 'HIGH';
+    prioridade = 'MEDIUM';
     proximaAcao = 'Investigar a dificuldade relatada antes de apresentar uma solução';
   }
 
