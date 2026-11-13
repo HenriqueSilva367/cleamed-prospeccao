@@ -141,6 +141,8 @@ export default function Home() {
   const [autopilotQr, setAutopilotQr] = useState(null);
   const [pipelineNotas, setPipelineNotas] = useState({});
   const [modalNotas, setModalNotas] = useState(null);
+  const [pipelineHistorico, setPipelineHistorico] = useState({});
+  const [modalHistorico, setModalHistorico] = useState(null);
   const [modalReviews, setModalReviews] = useState(null);
   const [enriquecendoId, setEnriquecendoId] = useState(null);
   const [novaNota, setNovaNota] = useState('');
@@ -456,6 +458,18 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
       alert('Erro ao enviar mensagem: ' + e.message);
     }
     setSalvando(false);
+  }
+
+  async function fetchHistoricoStatus(clinicaId) {
+    try {
+      const response = await fetch(`${API}/clinicas/${clinicaId}/historico-status`);
+      if (!response.ok) throw new Error('Não foi possível carregar o histórico');
+      const historico = await response.json();
+      setPipelineHistorico(prev => ({ ...prev, [clinicaId]: historico }));
+    } catch (error) {
+      console.error('Erro ao carregar histórico do pipeline:', error);
+      setPipelineHistorico(prev => ({ ...prev, [clinicaId]: [] }));
+    }
   }
 
   async function updStatus(id, status) {
@@ -869,6 +883,13 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                                 className="text-[11px] text-gray-400 hover:text-gray-700 p-1 rounded hover:bg-gray-100" title="Notas">
                                 📝
                               </button>
+                              <button onClick={() => {
+                                setModalHistorico(c);
+                                fetchHistoricoStatus(c.id);
+                              }}
+                                className="text-[11px] text-indigo-500 hover:text-indigo-700 p-1 rounded hover:bg-indigo-50" title="Histórico de etapas">
+                                🕘
+                              </button>
                               <button onClick={() => setModalReviews(c)}
                                 className={`text-[11px] p-1 rounded font-bold ${c.enriquecido_em ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-400 hover:bg-gray-100'}`} title="Ver Insights & Avaliações do Google Maps">
                                 ✨
@@ -954,6 +975,36 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                   placeholder="Escreva uma nota... (ex: Liguei, falei com a recepcionista Maria. Agendar demo para 2a-feira)"
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none resize-none h-20 mb-2"
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {modalHistorico && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-gray-900">🕘 Histórico do pipeline</h3>
+                  <p className="text-xs text-gray-500">{modalHistorico.nome}</p>
+                </div>
+                <button onClick={() => setModalHistorico(null)} className="text-gray-400 hover:text-gray-900 bg-white p-2 rounded-xl shadow-sm border border-gray-100">✕</button>
+              </div>
+              <div className="p-4 flex-1 overflow-y-auto space-y-3">
+                {(pipelineHistorico[modalHistorico.id] || []).length === 0 ? (
+                  <div className="text-center text-gray-400 text-sm py-8">Nenhuma movimentação registrada ainda.</div>
+                ) : (pipelineHistorico[modalHistorico.id] || []).map(item => (
+                  <div key={item.id} className="flex gap-3 items-start border-l-2 border-indigo-200 pl-3 py-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800">
+                        {STATUS_LABELS[item.old_status] || item.old_status || 'Cadastro inicial'}
+                        <span className="text-gray-400 font-normal mx-2">→</span>
+                        {STATUS_LABELS[item.new_status] || item.new_status}
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-1">{new Date(item.changed_at + (item.changed_at.endsWith('Z') ? '' : 'Z')).toLocaleString('pt-BR')}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
