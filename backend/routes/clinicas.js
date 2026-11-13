@@ -116,7 +116,7 @@ router.put('/:id', (req, res) => {
   if (!atual) return res.status(404).json({ erro: 'Clínica não encontrada' });
   const lead = applyLeadScore({ nome, tel, bairro, email, endereco, site, avaliacao, categoria, cidade });
   const prioridadeComercial = sales_priority || atual.sales_priority || 'LOW';
-  const origemPrioridade = sales_priority ? 'manual' : (atual.sales_priority_source || 'auto');
+  const origemPrioridade = sales_priority && sales_priority !== atual.sales_priority ? 'manual' : (atual.sales_priority_source || 'auto');
   db.prepare(
     `UPDATE clinicas SET nome=?, tel=?, bairro=?, email=?, endereco=?, site=?, avaliacao=?, categoria=?, cidade=?, lead_priority=?, fit_score=?, score_reason=?, sales_priority=?, sales_priority_source=? WHERE id=?`
   ).run(lead.nome, lead.tel||'', lead.bairro||'', lead.email||'', lead.endereco||'', lead.site||'', lead.avaliacao||'', lead.categoria||'', lead.cidade||'', lead.lead_priority||'LOW', lead.fit_score||0, lead.score_reason||'', prioridadeComercial, origemPrioridade, req.params.id);
@@ -128,13 +128,26 @@ router.patch('/:id/status', (req, res) => {
   const { status } = req.body;
   if (!STATUS_VALIDOS.includes(status)) return res.status(400).json({ erro: 'Status inválido' });
   const pausarIa = ['reply', 'reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted'].includes(status);
+  const prioridadeStatus = ['reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted'].includes(status)
+    ? 'HIGH'
+    : (['reply', 'interviewing'].includes(status) ? 'MEDIUM' : 'LOW');
   if (pausarIa) {
-    db.prepare('UPDATE clinicas SET status = ?, ia_ativa = 0 WHERE id = ?').run(status, req.params.id);
+    db.prepare(`
+      UPDATE clinicas
+      SET status = ?, ia_ativa = 0,
+          sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE ? END
+      WHERE id = ?
+    `).run(status, prioridadeStatus, req.params.id);
     if (cancelarDebounceLead) {
       cancelarDebounceLead(parseInt(req.params.id, 10));
     }
   } else {
-    db.prepare('UPDATE clinicas SET status = ? WHERE id = ?').run(status, req.params.id);
+    db.prepare(`
+      UPDATE clinicas
+      SET status = ?,
+          sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE ? END
+      WHERE id = ?
+    `).run(status, prioridadeStatus, req.params.id);
   }
   res.json({ ok: true, ia_pausada: pausarIa });
 });
@@ -181,7 +194,7 @@ router.patch('/:id/proxima-acao', (req, res) => {
   }
 
   const prioridadeComercial = sales_priority || atual.sales_priority || 'LOW';
-  const origemPrioridade = sales_priority ? 'manual' : (atual.sales_priority_source || 'auto');
+  const origemPrioridade = sales_priority && sales_priority !== atual.sales_priority ? 'manual' : (atual.sales_priority_source || 'auto');
   db.prepare(`
     UPDATE clinicas
     SET proxima_acao = ?,
