@@ -1,0 +1,35 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const db = require('../db/database');
+const { registrarHandoff, marcarHandoffNotificado } = require('../handoff');
+
+test('handoff é registrado uma única vez e pausa a IA', () => {
+  const result = db.prepare("INSERT INTO clinicas (nome, tel, status, ia_ativa) VALUES ('Clínica Handoff Teste', '5585000000001', 'interviewing', 1)").run();
+  const id = result.lastInsertRowid;
+  try {
+    assert.equal(registrarHandoff(db, id, 'Solicitou demonstração.'), true);
+    assert.equal(registrarHandoff(db, id, 'Solicitou preço.'), false);
+    const lead = db.prepare('SELECT status, ia_ativa, handoff_at, handoff_reason, handoff_notified_at FROM clinicas WHERE id = ?').get(id);
+    assert.equal(lead.status, 'reply');
+    assert.equal(lead.ia_ativa, 0);
+    assert.ok(lead.handoff_at);
+    assert.equal(lead.handoff_reason, 'Solicitou demonstração.');
+    assert.equal(lead.handoff_notified_at, null);
+  } finally {
+    db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+  }
+});
+
+test('handoff permite marcar notificação enviada apenas uma vez', () => {
+  const result = db.prepare("INSERT INTO clinicas (nome, tel, status) VALUES ('Clínica Handoff Notificação', '5585000000002', 'interviewing')").run();
+  const id = result.lastInsertRowid;
+  try {
+    registrarHandoff(db, id, 'Pediu contato humano.');
+    assert.equal(marcarHandoffNotificado(db, id), true);
+    assert.equal(marcarHandoffNotificado(db, id), false);
+    const lead = db.prepare('SELECT handoff_notified_at FROM clinicas WHERE id = ?').get(id);
+    assert.ok(lead.handoff_notified_at);
+  } finally {
+    db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+  }
+});
