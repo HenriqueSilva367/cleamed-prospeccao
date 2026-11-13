@@ -41,10 +41,10 @@
   "plans": {
     "Pro": "R$149,90/mês",
     "Business": "R$249,90/mês",
-    "Platinum": "R$499,90/mês"
+    "Platinum": "R$399,90/mês"
   },
   "fallbackTemplates": [
-    "Oi! Tudo bem? Sou o Henrique. Em clínicas, a falta de pacientes sem aviso costuma ser um problema recorrente.\n\nComo vocês lidam com isso hoje? Usam algum sistema ou fazem manualmente?",
-    "Oi! Tudo bem? Aqui é o Henrique. Como vocês fazem a confirmação de consultas hoje?\n\nÉ tudo manual ou já usam algum sistema?"
+    "Oi! Tudo bem? Sou o assistente virtual da equipe CleanMed. Como vocês fazem a confirmação de consultas hoje: manualmente ou por algum sistema?",
+    "Olá! Faço parte da equipe CleanMed. Queria entender como vocês organizam os agendamentos e os lembretes dos pacientes atualmente."
   ]
 }
