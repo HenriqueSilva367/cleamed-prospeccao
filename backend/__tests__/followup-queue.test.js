@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Database = require('better-sqlite3');
-const { listDueFollowups } = require('../followup-queue');
+const { listDueFollowups, registerManualFollowup } = require('../followup-queue');
 
 function createDb() {
   const db = new Database(':memory:');
@@ -99,6 +99,33 @@ test('limita a resposta e informa se o follow-up automático está desligado', (
     assert.equal(result.total, 3);
     assert.equal(result.returned, 2);
     assert.equal(result.limit, 2);
+  } finally {
+    db.close();
+  }
+});
+
+
+test('registra follow-up manual explicitamente e avança o estágio', () => {
+  const db = createDb();
+  try {
+    insertLead(db, { id: 10, followup_stage: 0 });
+    const result = registerManualFollowup(db, 10, { now: '2026-11-13 15:30:00' });
+    const lead = db.prepare('SELECT followup_stage, last_followup_at FROM clinicas WHERE id = 10').get();
+    assert.deepEqual(result, { ok: true, followup_stage: 1, last_followup_at: '2026-11-13 15:30:00' });
+    assert.deepEqual(lead, { followup_stage: 1, last_followup_at: '2026-11-13 15:30:00' });
+  } finally {
+    db.close();
+  }
+});
+
+test('não registra follow-up para clínica inexistente, respondida ou com etapas concluídas', () => {
+  const db = createDb();
+  try {
+    insertLead(db, { id: 11, status: 'reply' });
+    insertLead(db, { id: 12, followup_stage: 4 });
+    assert.equal(registerManualFollowup(db, 999).reason, 'not_found');
+    assert.equal(registerManualFollowup(db, 11).reason, 'invalid_status');
+    assert.equal(registerManualFollowup(db, 12).reason, 'completed');
   } finally {
     db.close();
   }

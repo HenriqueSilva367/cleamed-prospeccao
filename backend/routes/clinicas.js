@@ -4,6 +4,7 @@ const db = require('../db/database');
 const { enviarMensagem, salvarMensagem, sincronizarHistoricoChat, cancelarDebounceLead, notificarVendedor } = require('../whatsapp');
 const { marcarHandoffNotificado } = require('../handoff');
 const { applyLeadScore } = require('../lead-scoring');
+const { registerManualFollowup } = require('../followup-queue');
 
 const STATUS_VALIDOS = ['pending', 'paused_site', 'sent', 'interviewing', 'indicou_responsavel', 'reply', 'reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted', 'disabled'];
 
@@ -227,6 +228,27 @@ router.delete('/:id', (req, res) => {
   });
   removerRelacionados(req.params.id);
   res.json({ ok: true });
+});
+
+
+// Registrar follow-up realizado manualmente (não envia mensagem).
+router.post('/:id/followup/registrar', (req, res) => {
+  try {
+    const result = registerManualFollowup(db, Number(req.params.id));
+    if (!result.ok) {
+      const statusCode = result.reason === 'not_found' ? 404 : 409;
+      const messages = {
+        not_found: 'Clínica não encontrada.',
+        invalid_status: 'Só é possível registrar follow-up para clínicas ainda aguardando resposta.',
+        completed: 'Todas as etapas de follow-up já foram concluídas.'
+      };
+      return res.status(statusCode).json({ erro: messages[result.reason] || 'Não foi possível registrar o follow-up.' });
+    }
+    return res.json(result);
+  } catch (error) {
+    console.error('Erro ao registrar follow-up manual:', error);
+    return res.status(500).json({ erro: 'Erro ao registrar follow-up.' });
+  }
 });
 
 // Enviar mensagem manual
