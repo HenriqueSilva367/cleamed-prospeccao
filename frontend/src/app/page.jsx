@@ -12,7 +12,7 @@ const STATUS = {
   indicou_responsavel: 'Indicou Decisor',
   reply: 'Contato Humano',
   reuniao_agendada: 'Demo Agendada',
-  demo_realizada: 'Teste Assistido (7d)',
+  demo_realizada: 'Teste Assistido (30 dias)',
   negociando: 'Em Fechamento',
   diagnostico: 'Diagnóstico',
   proposta: 'Proposta',
@@ -62,7 +62,7 @@ const gerarScriptsPlaybook = (clinica) => {
       label: '🎯 1. Dor Manual → Demo 5 min',
       badge: 'Qualificado Manual',
       color: 'bg-purple-50 text-purple-800 border-purple-200 hover:bg-purple-100',
-      texto: `${saudacao} Vi aqui que hoje vocês ainda fazem o controle e a confirmação de consultas manualmente na ${nomeClinica}.\n\nNa CleanMed o próprio sistema envia os lembretes no WhatsApp dos pacientes e já atualiza a agenda sozinho, cortando até 70% das faltas sem a recepção precisar cobrar um por um.\n\nConsigo te mostrar a tela em 5 minutinhos hoje às 14h ou às 16h, ou prefere que eu já deixe um acesso de teste configurado para vocês verem?`
+      texto: `${saudacao} Vi aqui que hoje vocês ainda fazem o controle e a confirmação de consultas manualmente na ${nomeClinica}.\n\nNa CleanMed o próprio sistema envia os lembretes no WhatsApp dos pacientes e já atualiza a agenda sozinho, ajudando a reduzir faltas com lembretes e confirmações sem a recepção precisar cobrar um por um.\n\nConsigo te mostrar a tela em 5 minutinhos hoje às 14h ou às 16h, ou prefere que eu já deixe um acesso de teste configurado para vocês verem?`
     },
     {
       id: 'decisor_indicado',
@@ -76,14 +76,14 @@ const gerarScriptsPlaybook = (clinica) => {
       label: '🚀 3. Criar Teste Assistido (Sem link cru!)',
       badge: 'Zero Fricção',
       color: 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100',
-      texto: `Perfeito! Para você não perder tempo configurando nada do zero, eu mesmo já crio e deixo o painel de 7 dias grátis da ${nomeClinica} configurado com a agenda de vocês.\n\nSó me confirma aqui rapidinho:\n1) Qual o melhor e-mail para ser o seu login?\n2) Quais os nomes dos profissionais que atendem hoje?\n\nEm 5 minutos já te mando o acesso prontinho para usar!`
+      texto: `Perfeito! Para você não perder tempo configurando nada do zero, eu mesmo já crio e deixo o painel de 30 dias grátis da ${nomeClinica} configurado com a agenda de vocês.\n\nSó me confirma aqui rapidinho:\n1) Qual o melhor e-mail para ser o seu login?\n2) Quais os nomes dos profissionais que atendem hoje?\n\nEm 5 minutos já te mando o acesso prontinho para usar!`
     },
     {
       id: 'entregar_login',
       label: '🔑 4. Entregar Login Pronto',
       badge: 'Onboarding',
       color: 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100',
-      texto: `Prontinho! Já criei e deixei configurado o ambiente da ${nomeClinica} para os seus 7 dias de teste grátis:\n\n🌐 Painel: https://app.cleanmed.com.br\n📧 Login: ${clinica?.email || '[SEU_EMAIL]'}\n🔑 Senha provisória: mudarsenha123\n\nConsegue abrir aí rapidinho no computador ou celular só para fazermos o primeiro agendamento de teste juntos em 2 minutos?`
+      texto: `Prontinho! Já criei e deixei configurado o ambiente da ${nomeClinica} para os seus 30 dias de teste grátis:\n\n🌐 Painel: https://app.cleanmed.com.br\n📧 Login: ${clinica?.email || '[SEU_EMAIL]'}\n🔑 Senha provisória: mudarsenha123\n\nConsegue abrir aí rapidinho no computador ou celular só para fazermos o primeiro agendamento de teste juntos em 2 minutos?`
     },
     {
       id: 'followup_teste',
@@ -626,7 +626,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
             { status: 'qualificados', label: 'Qualificados / Dor', color: 'amber', emoji: '🔥', match: (c) => c.status === 'indicou_responsavel' || (c.status === 'interviewing' && isQualificadoPipeline(c)) },
             { status: 'reply', label: 'Contato Humano', color: 'blue', emoji: '📞', match: (c) => c.status === 'reply' },
             { status: 'reuniao_agendada', label: 'Demo Agendada', color: 'violet', emoji: '📅', match: (c) => c.status === 'reuniao_agendada' },
-            { status: 'demo_realizada', label: 'Teste Assistido (7d)', color: 'fuchsia', emoji: '🧪', match: (c) => c.status === 'demo_realizada' },
+            { status: 'demo_realizada', label: 'Teste Assistido (30 dias)', color: 'fuchsia', emoji: '🧪', match: (c) => c.status === 'demo_realizada' },
             { status: 'negociando', label: 'Em Fechamento', color: 'cyan', emoji: '🤝', match: (c) => c.status === 'negociando' || c.status === 'diagnostico' || c.status === 'proposta' },
             { status: 'converted', label: 'Assinante', color: 'green', emoji: '✅', match: (c) => c.status === 'converted' },
           ];

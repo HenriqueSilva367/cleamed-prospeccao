@@ -4,7 +4,7 @@ const PLANOS = {
   DEMO: { nome: 'DEMO (Trial)', preco: 'R$ 0,00', duracao: '30 dias' },
   PRO: { nome: 'PRO', preco: 'R$ 149,90/mês', anual: 'R$ 1.798,80/ano' },
   BUSINESS: { nome: 'BUSINESS', preco: 'R$ 249,90/mês', anual: 'R$ 2.998,80/ano' },
-  PLATINUM: { nome: 'PLATINUM', preco: 'R$ 499,90/mês', anual: 'R$ 5.998,80/ano' },
+  PLATINUM: { nome: 'PLATINUM', preco: 'R$ 399,90/mês', anual: 'R$ 4.798,80/ano' },
 };
 
 function recomendarPlano(respostas) {
