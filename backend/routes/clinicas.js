@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
-const { enviarMensagem, salvarMensagem, sincronizarHistoricoChat, cancelarDebounceLead } = require('../whatsapp');
+const { enviarMensagem, salvarMensagem, sincronizarHistoricoChat, cancelarDebounceLead, notificarVendedor } = require('../whatsapp');
+const { marcarHandoffNotificado } = require('../handoff');
 const { applyLeadScore } = require('../lead-scoring');
 
 const STATUS_VALIDOS = ['pending', 'paused_site', 'sent', 'interviewing', 'indicou_responsavel', 'reply', 'reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted', 'disabled'];
@@ -118,6 +119,23 @@ router.patch('/:id/status', (req, res) => {
     db.prepare('UPDATE clinicas SET status = ? WHERE id = ?').run(status, req.params.id);
   }
   res.json({ ok: true, ia_pausada: pausarIa });
+});
+
+// Reenviar notificação de um handoff pendente, sem reativar a IA.
+router.post('/:id/handoff/notificar', async (req, res) => {
+  const lead = db.prepare('SELECT * FROM clinicas WHERE id = ?').get(req.params.id);
+  if (!lead) return res.status(404).json({ erro: 'Clínica não encontrada' });
+  if (!lead.handoff_at) return res.status(409).json({ erro: 'Este lead ainda não possui handoff registrado.' });
+  if (lead.handoff_notified_at) return res.status(409).json({ erro: 'A notificação deste handoff já foi enviada.' });
+
+  const resultado = await notificarVendedor(lead);
+  if (!resultado.sent) {
+    return res.status(503).json({ erro: resultado.reason || 'Não foi possível enviar a notificação.' });
+  }
+
+  marcarHandoffNotificado(db, lead.id);
+  const atualizado = db.prepare('SELECT handoff_notified_at FROM clinicas WHERE id = ?').get(lead.id);
+  res.json({ ok: true, handoff_notified_at: atualizado.handoff_notified_at });
 });
 
 // Ativar ou pausar interferência da IA para uma clínica específica
