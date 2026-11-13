@@ -9,12 +9,13 @@ test('handoff é registrado uma única vez e pausa a IA', () => {
   try {
     assert.equal(registrarHandoff(db, id, 'Solicitou demonstração.'), true);
     assert.equal(registrarHandoff(db, id, 'Solicitou preço.'), false);
-    const lead = db.prepare('SELECT status, ia_ativa, handoff_at, handoff_reason, handoff_notified_at FROM clinicas WHERE id = ?').get(id);
+    const lead = db.prepare('SELECT status, ia_ativa, handoff_at, handoff_reason, handoff_notified_at, sales_priority FROM clinicas WHERE id = ?').get(id);
     assert.equal(lead.status, 'reply');
     assert.equal(lead.ia_ativa, 0);
     assert.ok(lead.handoff_at);
     assert.equal(lead.handoff_reason, 'Solicitou demonstração.');
     assert.equal(lead.handoff_notified_at, null);
+    assert.equal(lead.sales_priority, 'HIGH');
   } finally {
     db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
   }
@@ -29,6 +30,19 @@ test('handoff permite marcar notificação enviada apenas uma vez', () => {
     assert.equal(marcarHandoffNotificado(db, id), false);
     const lead = db.prepare('SELECT handoff_notified_at FROM clinicas WHERE id = ?').get(id);
     assert.ok(lead.handoff_notified_at);
+  } finally {
+    db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+  }
+});
+
+test('handoff preserva prioridade comercial definida manualmente', () => {
+  const result = db.prepare("INSERT INTO clinicas (nome, tel, status, ia_ativa, sales_priority, sales_priority_source) VALUES ('Clínica Handoff Manual', '5585000000003', 'interviewing', 1, 'LOW', 'manual')").run();
+  const id = result.lastInsertRowid;
+  try {
+    assert.equal(registrarHandoff(db, id, 'Solicitou contato humano.'), true);
+    const lead = db.prepare('SELECT sales_priority, sales_priority_source FROM clinicas WHERE id = ?').get(id);
+    assert.equal(lead.sales_priority, 'LOW');
+    assert.equal(lead.sales_priority_source, 'manual');
   } finally {
     db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
   }
