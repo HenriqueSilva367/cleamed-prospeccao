@@ -2,6 +2,7 @@ require('dotenv').config({ override: true });
 const express = require('express');
 const cors = require('cors');
 const db = require('./db/database');
+const { HOST, corsOptions } = require('./security');
 
 const clinicasRouter = require('./routes/clinicas');
 const buscaRouter = require('./routes/busca');
@@ -10,7 +11,7 @@ const autopilot = require('./autopilot');
 const whatsapp = require('./whatsapp');
 
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/api/clinicas', clinicasRouter);
@@ -72,4 +73,4 @@ app.get('/api/historico-whatsapp/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
+app.listen(PORT, HOST, () => console.log(`Servidor rodando em http://${HOST}:${PORT}`));
