@@ -88,4 +88,34 @@ function listDueFollowups(db, { now = new Date(), limit = 100 } = {}) {
   };
 }
 
-module.exports = { listDueFollowups };
+
+function registerManualFollowup(db, clinicId, { now = new Date() } = {}) {
+  const nowSql = now instanceof Date
+    ? now.toISOString().slice(0, 19).replace('T', ' ')
+    : String(now).replace('T', ' ').replace(/Z$/, '').slice(0, 19);
+
+  const register = db.transaction(() => {
+    const lead = db.prepare(
+      'SELECT id, status, IFNULL(followup_stage, 0) AS followup_stage FROM clinicas WHERE id = ?'
+    ).get(clinicId);
+
+    if (!lead) return { ok: false, reason: 'not_found' };
+    if (lead.status !== 'sent') return { ok: false, reason: 'invalid_status' };
+    if (lead.followup_stage < 0 || lead.followup_stage >= 4) {
+      return { ok: false, reason: 'completed' };
+    }
+
+    const nextStage = lead.followup_stage + 1;
+    db.prepare(`
+      UPDATE clinicas
+      SET followup_stage = ?, last_followup_at = ?
+      WHERE id = ? AND status = 'sent' AND IFNULL(followup_stage, 0) = ?
+    `).run(nextStage, nowSql, clinicId, lead.followup_stage);
+
+    return { ok: true, followup_stage: nextStage, last_followup_at: nowSql };
+  });
+
+  return register();
+}
+
+module.exports = { listDueFollowups, registerManualFollowup };
