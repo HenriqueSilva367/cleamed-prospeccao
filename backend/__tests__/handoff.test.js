@@ -3,6 +3,11 @@ const assert = require('node:assert/strict');
 const db = require('../db/database');
 const { registrarHandoff, marcarHandoffNotificado } = require('../handoff');
 
+function deleteTestClinic(id) {
+  db.prepare('DELETE FROM status_history WHERE clinica_id = ?').run(id);
+  db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+}
+
 test('handoff é registrado uma única vez e pausa a IA', () => {
   const result = db.prepare("INSERT INTO clinicas (nome, tel, status, ia_ativa) VALUES ('Clínica Handoff Teste', '5585000000001', 'interviewing', 1)").run();
   const id = result.lastInsertRowid;
@@ -17,7 +22,7 @@ test('handoff é registrado uma única vez e pausa a IA', () => {
     assert.equal(lead.handoff_notified_at, null);
     assert.equal(lead.sales_priority, 'HIGH');
   } finally {
-    db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+    deleteTestClinic(id);
   }
 });
 
@@ -31,7 +36,7 @@ test('handoff permite marcar notificação enviada apenas uma vez', () => {
     const lead = db.prepare('SELECT handoff_notified_at FROM clinicas WHERE id = ?').get(id);
     assert.ok(lead.handoff_notified_at);
   } finally {
-    db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+    deleteTestClinic(id);
   }
 });
 
@@ -44,6 +49,6 @@ test('handoff preserva prioridade comercial definida manualmente', () => {
     assert.equal(lead.sales_priority, 'LOW');
     assert.equal(lead.sales_priority_source, 'manual');
   } finally {
-    db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+    deleteTestClinic(id);
   }
 });
