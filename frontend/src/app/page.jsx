@@ -1421,7 +1421,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                     </div>
                   ))}
                   <div className="">
-                    <label className="block text-xs text-gray-500 mb-1">Prioridade</label>
+                    <label className="block text-xs text-gray-500 mb-1">Prioridade comercial</label>
                     <select value={form.sales_priority || 'LOW'} 
                       onChange={e => setForm({ ...form, sales_priority: e.target.value })}
                       className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-gray-300"
@@ -1498,7 +1498,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
                     <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Nome</th>
-                    <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Score</th>
+                    <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Prioridade comercial / Fit</th>
                     <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Categoria</th>
                     <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Contato</th>
                     <th className="text-left text-xs font-bold text-gray-400 px-4 py-4 uppercase tracking-wider">Local (Bairro/Cidade)</th>
@@ -1568,7 +1568,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                            c.sales_priority === 'MEDIUM' ? '⚡ MÉDIA' :
                            '💤 BAIXA'}
                         </span>
-                        <div className="text-[11px] text-gray-500 mt-1 font-semibold">{Number(c.fit_score || 0)}/100</div>
+                        <div className="text-[11px] text-gray-500 mt-1 font-semibold">{Number(c.fit_score || 0)}/100 · Adequação {c.lead_priority === 'HIGH' ? 'alta' : c.lead_priority === 'MEDIUM' ? 'média' : 'baixa'}</div>
                         {c.score_reason && <div className="text-[10px] text-gray-400 mt-0.5 max-w-[150px] truncate" title={c.score_reason}>{c.score_reason}</div>}
                       </td>
                       <td className="px-4 py-4">
@@ -2348,7 +2348,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridade</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridade comercial</label>
                   <select
                     value={followupForm.sales_priority}
                     onChange={e => setFollowupForm(p => ({ ...p, sales_priority: e.target.value }))}
