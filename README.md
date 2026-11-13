@@ -125,3 +125,8 @@ Na prospecção inicial, o piloto ordena primeiro pela adequação (`fit_score`)
 O endpoint `GET /api/autopilot/followups` lista, sem enviar mensagens, os leads com status `sent` cujo prazo de follow-up já venceu conforme `followup_stage` e as configurações `followup_dias_1` a `followup_dias_4`. A resposta informa se o envio automático está habilitado, a cadência configurada, a quantidade total e os itens retornados (com prazo e indicação de vencido/no prazo).
 
 A consulta respeita os filtros atuais do piloto: status `sent`, sem bot detectado e com IA ativa. A rota é somente de leitura; `followup_auto_ativo` continua desativado por padrão e nenhuma mensagem é disparada por ela.
+
+
+## Histórico de follow-ups
+
+Cada follow-up registrado manualmente ou enviado pelo piloto automático gera um evento em `followup_history`, associado à clínica e à etapa. O endpoint `GET /api/clinicas/:id/followup/historico` consulta os eventos mais recentes (até 200). A aba Follow-ups permite abrir o histórico de cada clínica. Os registros anteriores à implantação desta tabela não são reconstruídos retroativamente.

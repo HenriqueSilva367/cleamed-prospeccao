@@ -4,7 +4,7 @@ const db = require('../db/database');
 const { enviarMensagem, salvarMensagem, sincronizarHistoricoChat, cancelarDebounceLead, notificarVendedor } = require('../whatsapp');
 const { marcarHandoffNotificado } = require('../handoff');
 const { applyLeadScore } = require('../lead-scoring');
-const { registerManualFollowup } = require('../followup-queue');
+const { registerManualFollowup, listFollowupHistory } = require('../followup-queue');
 
 const STATUS_VALIDOS = ['pending', 'paused_site', 'sent', 'interviewing', 'indicou_responsavel', 'reply', 'reuniao_agendada', 'demo_realizada', 'negociando', 'diagnostico', 'proposta', 'converted', 'disabled'];
 
@@ -230,6 +230,19 @@ router.delete('/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+
+
+router.get('/:id/followup/historico', (req, res) => {
+  const lead = db.prepare('SELECT id FROM clinicas WHERE id = ?').get(req.params.id);
+  if (!lead) return res.status(404).json({ erro: 'Clínica não encontrada.' });
+  try {
+    const history = listFollowupHistory(db, Number(req.params.id), { limit: req.query.limit });
+    return res.json({ items: history, total: history.length });
+  } catch (error) {
+    console.error('Erro ao buscar histórico de follow-ups:', error);
+    return res.status(500).json({ erro: 'Erro ao buscar histórico de follow-ups.' });
+  }
+});
 
 // Registrar follow-up realizado manualmente (não envia mensagem).
 router.post('/:id/followup/registrar', (req, res) => {

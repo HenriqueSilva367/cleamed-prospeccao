@@ -551,13 +551,22 @@ async function runLoop() {
 
         // 4. Marcar como enviado ou atualizar follow-up
         if (isFollowup) {
-            db.prepare(`
-                UPDATE clinicas
-                SET followup_stage = IFNULL(followup_stage, 0) + 1,
-                    last_followup_at = datetime('now'),
-                    last_contact_at = datetime('now')
-                WHERE id = ?
-            `).run(lead.id);
+            const registerFollowup = db.transaction(() => {
+                const current = db.prepare('SELECT IFNULL(followup_stage, 0) AS stage FROM clinicas WHERE id = ?').get(lead.id);
+                const nextStage = (current?.stage || 0) + 1;
+                db.prepare(`
+                    UPDATE clinicas
+                    SET followup_stage = ?,
+                        last_followup_at = datetime('now'),
+                        last_contact_at = datetime('now')
+                    WHERE id = ?
+                `).run(nextStage, lead.id);
+                db.prepare(`
+                    INSERT INTO followup_history (clinica_id, stage, source)
+                    VALUES (?, ?, 'followup')
+                `).run(lead.id, nextStage);
+            });
+            registerFollowup();
         } else {
             db.prepare(`
                 UPDATE clinicas

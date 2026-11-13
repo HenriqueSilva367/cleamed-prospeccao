@@ -1,12 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Database = require('better-sqlite3');
-const { listDueFollowups, registerManualFollowup } = require('../followup-queue');
+const { listDueFollowups, registerManualFollowup, listFollowupHistory } = require('../followup-queue');
 
 function createDb() {
   const db = new Database(':memory:');
   db.exec(`
     CREATE TABLE configuracoes (chave TEXT PRIMARY KEY, valor TEXT NOT NULL);
+    CREATE TABLE followup_history (id INTEGER PRIMARY KEY AUTOINCREMENT, clinica_id INTEGER NOT NULL, stage INTEGER NOT NULL, source TEXT NOT NULL, message_id INTEGER, created_at TEXT NOT NULL DEFAULT (datetime('now')));
     CREATE TABLE clinicas (
       id INTEGER PRIMARY KEY,
       nome TEXT NOT NULL,
@@ -126,6 +127,23 @@ test('não registra follow-up para clínica inexistente, respondida ou com etapa
     assert.equal(registerManualFollowup(db, 999).reason, 'not_found');
     assert.equal(registerManualFollowup(db, 11).reason, 'invalid_status');
     assert.equal(registerManualFollowup(db, 12).reason, 'completed');
+  } finally {
+    db.close();
+  }
+});
+
+
+test('mantém histórico de cada follow-up manual e retorna em ordem decrescente', () => {
+  const db = createDb();
+  try {
+    insertLead(db, { id: 20 });
+    registerManualFollowup(db, 20, { now: '2026-11-11 10:00:00' });
+    registerManualFollowup(db, 20, { now: '2026-11-12 11:00:00' });
+    const history = listFollowupHistory(db, 20);
+    assert.equal(history.length, 2);
+    assert.deepEqual(history.map(item => item.stage), [2, 1]);
+    assert.deepEqual(history.map(item => item.source), ['manual', 'manual']);
+    assert.deepEqual(history.map(item => item.created_at), ['2026-11-12 11:00:00', '2026-11-11 10:00:00']);
   } finally {
     db.close();
   }

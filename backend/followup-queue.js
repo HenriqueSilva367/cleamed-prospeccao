@@ -106,11 +106,17 @@ function registerManualFollowup(db, clinicId, { now = new Date() } = {}) {
     }
 
     const nextStage = lead.followup_stage + 1;
-    db.prepare(`
+    const updated = db.prepare(`
       UPDATE clinicas
       SET followup_stage = ?, last_followup_at = ?
       WHERE id = ? AND status = 'sent' AND IFNULL(followup_stage, 0) = ?
     `).run(nextStage, nowSql, clinicId, lead.followup_stage);
+    if (updated.changes !== 1) return { ok: false, reason: 'conflict' };
+
+    db.prepare(`
+      INSERT INTO followup_history (clinica_id, stage, source, created_at)
+      VALUES (?, ?, 'manual', ?)
+    `).run(clinicId, nextStage, nowSql);
 
     return { ok: true, followup_stage: nextStage, last_followup_at: nowSql };
   });
@@ -118,4 +124,15 @@ function registerManualFollowup(db, clinicId, { now = new Date() } = {}) {
   return register();
 }
 
-module.exports = { listDueFollowups, registerManualFollowup };
+function listFollowupHistory(db, clinicId, { limit = 50 } = {}) {
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 50, 1), 200);
+  return db.prepare(`
+    SELECT id, clinica_id, stage, source, message_id, created_at
+    FROM followup_history
+    WHERE clinica_id = ?
+    ORDER BY created_at DESC, id DESC
+    LIMIT ?
+  `).all(clinicId, safeLimit);
+}
+
+module.exports = { listDueFollowups, registerManualFollowup, listFollowupHistory };

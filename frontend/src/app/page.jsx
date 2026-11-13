@@ -159,6 +159,9 @@ export default function Home() {
   const [salvandoFollowup, setSalvandoFollowup] = useState(false);
   const [followupQueue, setFollowupQueue] = useState({ enabled: false, scheduleDays: [], total: 0, returned: 0, items: [] });
   const [loadingFollowupQueue, setLoadingFollowupQueue] = useState(false);
+  const [followupHistory, setFollowupHistory] = useState({});
+  const [loadingFollowupHistory, setLoadingFollowupHistory] = useState({});
+
   const [followupQueueError, setFollowupQueueError] = useState('');
 
 
@@ -253,6 +256,20 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
       setLoadingFollowupQueue(false);
     }
   }, []);
+
+  const carregarHistoricoFollowup = async (item) => {
+    setLoadingFollowupHistory(prev => ({ ...prev, [item.id]: true }));
+    try {
+      const response = await fetch(`${API}/clinicas/${item.id}/followup/historico`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.erro || 'Não foi possível carregar o histórico.');
+      setFollowupHistory(prev => ({ ...prev, [item.id]: data.items || [] }));
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoadingFollowupHistory(prev => ({ ...prev, [item.id]: false }));
+    }
+  };
 
   const registrarFollowupManual = async (item) => {
     const etapa = Number(item.followup_stage || 0) + 1;
@@ -1258,7 +1275,8 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
               ) : (
                 <div className="divide-y divide-gray-100">
                   {followupQueue.items.map(item => (
-                    <div key={item.id} className="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div key={item.id} className="p-4 flex flex-col gap-3">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
                           <h4 className="font-bold text-gray-900">{item.nome}</h4>
@@ -1284,7 +1302,29 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
                           className="px-4 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100">
                           Registrar retorno feito
                         </button>
+                        <button onClick={() => carregarHistoricoFollowup(item)} disabled={loadingFollowupHistory[item.id]}
+                          className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50">
+                          {loadingFollowupHistory[item.id] ? 'Carregando...' : 'Ver histórico'}
+                        </button>
                       </div>
+                      </div>
+                      {followupHistory[item.id] && (
+                        <div className="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                          <div className="text-xs font-bold text-gray-700 mb-2">Histórico de follow-ups</div>
+                          {followupHistory[item.id].length === 0 ? (
+                            <p className="text-xs text-gray-500">Nenhuma tentativa registrada ainda.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {followupHistory[item.id].map(entry => (
+                                <div key={entry.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                  <span className="text-gray-700">Etapa {entry.stage} · {entry.source === 'manual' ? 'Registrado manualmente' : 'Enviado pelo piloto automático'}</span>
+                                  <span className="text-gray-500">{new Date(entry.created_at.replace(' ', 'T') + 'Z').toLocaleString('pt-BR')}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
