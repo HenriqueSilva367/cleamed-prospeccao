@@ -220,8 +220,12 @@ router.patch('/:id/proxima-acao', (req, res) => {
 
 // Deletar
 router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM clinicas WHERE id = ?').run(req.params.id);
-  db.prepare('DELETE FROM notas WHERE clinica_id = ?').run(req.params.id);
+  const removerRelacionados = db.transaction((id) => {
+    db.prepare('DELETE FROM status_history WHERE clinica_id = ?').run(id);
+    db.prepare('DELETE FROM notas WHERE clinica_id = ?').run(id);
+    db.prepare('DELETE FROM clinicas WHERE id = ?').run(id);
+  });
+  removerRelacionados(req.params.id);
   res.json({ ok: true });
 });
 
@@ -330,6 +334,21 @@ router.get('/:id/notas', (req, res) => {
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao buscar notas' });
   }
+});
+
+// Histórico de movimentações do pipeline.
+router.get('/:id/historico-status', (req, res) => {
+  const lead = db.prepare('SELECT id FROM clinicas WHERE id = ?').get(req.params.id);
+  if (!lead) return res.status(404).json({ erro: 'Clínica não encontrada' });
+
+  const historico = db.prepare(`
+    SELECT id, old_status, new_status, changed_at
+    FROM status_history
+    WHERE clinica_id = ?
+    ORDER BY changed_at DESC, id DESC
+    LIMIT 100
+  `).all(req.params.id);
+  res.json(historico);
 });
 
 // Adicionar nota
