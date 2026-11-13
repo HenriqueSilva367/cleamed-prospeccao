@@ -305,6 +305,24 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp
 // Previne duplicatas: se o mesmo whatsapp_message_id já existir, INSERT OR IGNORE não insere de novo
 db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_wa_id ON messages(whatsapp_message_id) WHERE whatsapp_message_id IS NOT NULL;`);
 
+// Histórico individual de follow-ups (manual e automático).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS followup_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    clinica_id INTEGER NOT NULL,
+    stage INTEGER NOT NULL,
+    source TEXT NOT NULL CHECK(source IN ('manual', 'followup')),
+    message_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (clinica_id) REFERENCES clinicas(id),
+    FOREIGN KEY (message_id) REFERENCES messages(id)
+  );
+`);
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_followup_history_clinica
+  ON followup_history(clinica_id, created_at DESC, id DESC);
+`);
+
 // Valores padrão da busca automática (só insere se não existirem)
 const inserirConfigPadrao = db.prepare(`INSERT OR IGNORE INTO configuracoes (chave, valor) VALUES (?, ?)`);
 inserirConfigPadrao.run('busca_auto_ativa', 'false');
