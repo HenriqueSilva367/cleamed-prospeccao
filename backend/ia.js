@@ -867,7 +867,7 @@ function obterTemplateFallback(clinica, historicoConversa) {
 
         // Se perguntou o que é / como funciona / ajuda / proposta
         if (/\b(funciona|trata|ajudar|ajuda|informaç|duvida|dúvida|proposta|melhoria)\b/i.test(lastClientText)) {
-            return `A CleanMed é uma solução que automatiza o agendamento e a confirmação de consultas pelo WhatsApp da própria clínica, reduzindo as faltas de pacientes em até 70%.\n\nComo vocês lidam com confirmações de consultas hoje? Usam algum sistema ou fazem manualmente?`;
+            return `A CleanMed é uma solução que automatiza o agendamento e a confirmação de consultas pelo WhatsApp da própria clínica, ajudando a reduzir faltas com lembretes e confirmações, sem prometer percentuais.\n\nComo vocês lidam com confirmações de consultas hoje? Usam algum sistema ou fazem manualmente?`;
         }
 
         console.log('[IA] Fallback inteligente acionado para mensagem em andamento.');
@@ -968,9 +968,9 @@ REGRAS FUNDAMENTAIS (LEIA COM ATENÇÃO MÁXIMA):
 - **USE O NOME DA PESSOA**: Se o cliente disser o próprio nome (ex: "Me chamo Sara", "Sou a Maria"), você DEVE chamá-la pelo nome na sua resposta (ex: "Olá, Sara!").
 - **NÃO REPITA PERGUNTAS JÁ RESPONDIDAS**: Se o cliente já disse que usa sistema (ou que não usa), NÃO pergunte de novo se usam sistema. Siga o fluxo natural da conversa e responda diretamente ao que ele disse.
 - Se o cliente fizer uma pergunta (ex: "Você tem alguma proposta de melhorias?"), responda primeiro a pergunta dele, depois conduza a conversa.
-- NUNCA diga que é IA, robô ou assistente virtual. Você é o assistente virtual da equipe CleanMed.
+- Se perguntarem, diga com transparência que é o assistente virtual da equipe CleanMed. Nunca finja ser Henrique.
 - Respostas CURTAS: máximo 2-4 linhas. PROIBIDO USAR EMOJIS (100% sem emojis).
-- NUNCA diga "vou passar para um atendente". VOCÊ JÁ É o consultor.
+- Quando houver interesse concreto, use [PASSAR_PARA_HUMANO] para encaminhar a conversa a Henrique.
 - Se não souber responder, diga "Vou verificar com a equipe e já te retorno" + [PASSAR_PARA_HUMANO].
 
 TOM DE VOZ:
@@ -1066,7 +1066,7 @@ Sua resposta (apenas o texto ou a tag):`;
             historicoTexto = `Cliente: ${historicoConversa}`;
         }
 
-        const plans = config.plans || { Pro: "R$149,90/mês", Business: "R$249,90/mês", Platinum: "R$499,90/mês" };
+        const plans = config.plans || { Pro: "R$149,90/mês", Business: "R$249,90/mês", Platinum: "R$399,90/mês" };
         const plansText = Object.entries(plans).map(([p, v]) => `${p}: ${v}`).join(', ');
 
         const prompt = `
@@ -1078,8 +1078,8 @@ REGRAS FUNDAMENTAIS (LEIA COM ATENÇÃO MÁXIMA):
 - **USE O NOME DA PESSOA**: Se o atendente informar o nome ("Me chamo Sara", "Sou o João"), VOCÊ É OBRIGADO a cumprimentá-lo pelo nome na sua resposta (ex: "Olá, Sara! Muito prazer.").
 - **NÃO REPITA PERGUNTAS JÁ RESPONDIDAS**: Se o cliente já respondeu sobre o sistema (ex: "já usamos sistema" ou "fazemos manual"), NUNCA pergunte isso novamente. Avance no assunto.
 - Se o cliente perguntar algo para você (ex: "Você tem alguma proposta?"), responda a ele e mostre que leu! NUNCA IGNORE.
-- NUNCA diga que é IA/robô. Você é o assistente virtual da equipe CleanMed.
-- NUNCA diga "vou transferir". VOCÊ JÁ É o consultor.
+- Se perguntarem, diga com transparência que é o assistente virtual da equipe CleanMed. Nunca finja ser Henrique.
+- Quando houver interesse concreto, use [PASSAR_PARA_HUMANO] para encaminhar a conversa a Henrique.
 - Se não souber: "Vou verificar com a equipe e já te retorno" + [PASSAR_PARA_HUMANO].
 
 Estágio: ${nextStage} | Planos: ${plansText}
