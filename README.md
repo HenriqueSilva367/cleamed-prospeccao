@@ -25,6 +25,16 @@ npm run dev
 ```
 Acesse: http://localhost:3000
 
+## Segurança e uso local
+
+Este projeto foi configurado para uso na própria máquina: o backend escuta somente em
+`127.0.0.1` e o CORS aceita apenas origens HTTP locais (`localhost` e `127.0.0.1`).
+A variável `CORS_ORIGINS` não permite liberar domínios externos.
+
+**Não exponha o backend à rede local, VPS ou internet.** Antes de qualquer publicação,
+é necessário implementar e revisar autenticação, autorização e outras proteções adequadas.
+CORS não substitui autenticação e não impede, sozinho, chamadas diretas à API.
+
 ## Funcionalidades
 
 - Cadastrar e editar clínicas manualmente
