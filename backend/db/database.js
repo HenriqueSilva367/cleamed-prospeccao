@@ -202,7 +202,8 @@ db.exec(`
       THEN 'MEDIUM'
     ELSE 'LOW'
   END
-  WHERE sales_priority IS NULL OR sales_priority = '' OR sales_priority = 'LOW';
+  WHERE (sales_priority IS NULL OR sales_priority = '' OR sales_priority = 'LOW')
+    AND IFNULL(sales_priority_source, 'auto') != 'manual';
 `);
 
 
