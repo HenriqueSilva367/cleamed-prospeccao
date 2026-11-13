@@ -8,6 +8,7 @@ const clinicasRouter = require('./routes/clinicas');
 const buscaRouter = require('./routes/busca');
 const diagnosticoRouter = require('./routes/diagnostico');
 const autopilot = require('./autopilot');
+const { listDueFollowups } = require('./followup-queue');
 const whatsapp = require('./whatsapp');
 
 const app = express();
@@ -19,6 +20,15 @@ app.use('/api/busca', buscaRouter);
 app.use('/api/diagnostico', diagnosticoRouter);
 
 // Rotas do Piloto Automático
+app.get('/api/autopilot/followups', (req, res) => {
+    try {
+        res.json(listDueFollowups(db, { limit: req.query.limit }));
+    } catch (e) {
+        console.error('[Autopilot] Erro ao listar follow-ups:', e);
+        res.status(500).json({ error: 'Não foi possível listar os follow-ups.' });
+    }
+});
+
 app.get('/api/autopilot', (req, res) => res.json(autopilot.getStatus()));
 app.post('/api/autopilot/toggle', (req, res) => res.json(autopilot.toggleAutopilot()));
 app.get('/api/autopilot/qr', async (req, res) => {
