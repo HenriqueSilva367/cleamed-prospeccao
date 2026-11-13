@@ -384,7 +384,7 @@ function initWhatsApp() {
                             messageDebouncers.delete(lead.id);
                         }
                         if (['sent', 'pending', 'paused_site', 'interviewing'].includes(leadAtualizado.status)) {
-                            db.prepare("UPDATE clinicas SET status = 'reply', last_contact_at = datetime('now') WHERE id = ?").run(lead.id);
+                            db.prepare("UPDATE clinicas SET status = 'reply', last_contact_at = datetime('now'), sales_priority = CASE WHEN sales_priority_source = 'manual' THEN sales_priority ELSE 'MEDIUM' END WHERE id = ?").run(lead.id);
                             logDebug(`[WhatsApp-Inbox] Mensagem recebida de ${lead.nome}, mas IA está desativada para este cliente. Status definido como 'reply' para atendimento humano.`);
                         } else {
                             logDebug(`[WhatsApp-Inbox] Mensagem recebida de ${lead.nome}, mas IA está desativada para este cliente. Nenhuma interferência automática.`);
