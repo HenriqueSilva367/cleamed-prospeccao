@@ -96,15 +96,15 @@ process.on('SIGTERM', async () => {
 async function notificarVendedor(lead, context = {}) {
     try {
         const row = db.prepare("SELECT valor FROM configuracoes WHERE chave = 'whatsapp_vendedor'").get();
-        const numVendedor = row?.valor?.replace(/\\D/g, '');
+        const numVendedor = row?.valor?.replace(/\D/g, '');
         if (!numVendedor || numVendedor.length < 10) return { sent: false, reason: 'Número do responsável não configurado.' };
         if (!isReady || !client) return { sent: false, reason: 'WhatsApp da CleanMed não está conectado.' };
 
         let numero = numVendedor;
         if (numero.length === 10 || numero.length === 11) numero = '55' + numero;
         const chatIdVendedor = numero + '@c.us';
-        const tel = lead.tel ? lead.tel.replace(/\\D/g, '') : 'N/A';
-        const resumo = String(context.lastMessage || '').replace(/\\s+/g, ' ').trim().slice(0, 220);
+        const tel = lead.tel ? lead.tel.replace(/\D/g, '') : 'N/A';
+        const resumo = String(context.lastMessage || '').replace(/\s+/g, ' ').trim().slice(0, 220);
         const motivo = lead.handoff_reason || 'A IA solicitou atendimento humano.';
         const msg = [
             '🔔 *ATENDIMENTO HUMANO SOLICITADO*',
@@ -569,7 +569,7 @@ function initWhatsApp() {
                                     if (respostaIA.includes('[PASSAR_PARA_HUMANO]')) {
                                         const ultimaMsgLead = [...ultimasMensagens].reverse().find(m => !m.fromMe)?.body || '';
                                         const motivoHandoff = ultimaMsgLead
-                                            ? 'Solicitação de atendimento humano: ' + ultimaMsgLead.replace(/\\s+/g, ' ').trim().slice(0, 220)
+                                            ? 'Solicitação de atendimento humano: ' + ultimaMsgLead.replace(/\s+/g, ' ').trim().slice(0, 220)
                                             : 'A IA solicitou atendimento humano.';
                                         const novoHandoff = registrarHandoff(db, currentLead.id, motivoHandoff);
 
