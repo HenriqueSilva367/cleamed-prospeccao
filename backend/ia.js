@@ -50,7 +50,7 @@ function detectNegativeIntent(message) {
   if (!message || typeof message !== 'string') return false;
   const normalize = value => String(value).toLowerCase()
     .normalize('NFD')
-    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
   const normalized = ' ' + normalize(message) + ' ';
@@ -457,9 +457,9 @@ function analisarEAtualizarProgressoLead(clinicaId, historicoConversa) {
   }
   // 4. Alto interesse: pedidos comerciais explícitos, não qualquer menção a "funciona" ou "agendar".
   else if (
-    /\\b(quanto custa|qual o preco|qual o valor|preco|valor do plano|valor do sistema|custa quanto)\\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')) ||
-    /\\b(demonstracao|demo|reuniao|teste gratis|testar o sistema|quero testar|gostaria de testar)\\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')) ||
-    /\\b(tenho interesse|quero conhecer|gostaria de conhecer|quero saber mais|me manda o link|me envie o link|quero contratar)\\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\\u0300-\\u036f]/g, ''))
+    /\b(quanto custa|qual o preco|qual o valor|preco|valor do plano|valor do sistema|custa quanto)\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '')) ||
+    /\b(demonstracao|demo|reuniao|teste gratis|testar o sistema|quero testar|gostaria de testar)\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\u0300-\u036f]/g, '')) ||
+    /\b(tenho interesse|quero conhecer|gostaria de conhecer|quero saber mais|me manda o link|me envie o link|quero contratar)\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
   ) {
     progresso = 'INTERESSE_ALTO';
     motivo = 'Lead solicitou preço, demonstração, teste ou demonstrou interesse explícito';
@@ -468,7 +468,7 @@ function analisarEAtualizarProgressoLead(clinicaId, historicoConversa) {
   }
   // 5. Dor operacional: uma simples menção a sistema não significa insatisfação.
   else if (
-    /\\b(manual|manualmente|planilha|caderno|faltas|demora|demorado|sobrecarga|retrabalho|desorganiza|dificuldade|problema|perda de horario|horarios vagos|consome muito tempo|da muito trabalho|nao confirma|nao fazem confirmacao)\\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\\u0300-\\u036f]/g, ''))
+    /\b(manual|manualmente|planilha|caderno|faltas|demora|demorado|sobrecarga|retrabalho|desorganiza|dificuldade|problema|perda de horario|horarios vagos|consome muito tempo|da muito trabalho|nao confirma|nao fazem confirmacao)\b/.test(ultimaMsgLower.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
   ) {
     progresso = 'QUALIFICADO_DOR';
     motivo = 'Lead relatou processo manual ou dificuldade operacional na rotina da clínica';
@@ -658,9 +658,9 @@ function detectStageTransition(history, currentStage) {
   
   if (detectNegativeIntent(txt)) return Stage.HUMANO;
   
-  const normalized = txt.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
-  if (/\\b(demonstracao|demo|reuniao|teste gratis|quero testar|gostaria de testar)\\b/.test(normalized)) return Stage.DEMO;
-  if (/\\b(quanto custa|qual o preco|qual o valor|preco|valor do plano|valor do sistema|tenho interesse|quero conhecer|gostaria de conhecer|quero contratar)\\b/.test(normalized)) return Stage.INTERESSE;
+  const normalized = txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/\b(demonstracao|demo|reuniao|teste gratis|quero testar|gostaria de testar)\b/.test(normalized)) return Stage.DEMO;
+  if (/\b(quanto custa|qual o preco|qual o valor|preco|valor do plano|valor do sistema|tenho interesse|quero conhecer|gostaria de conhecer|quero contratar)\b/.test(normalized)) return Stage.INTERESSE;
 
   const painKeywords = ['manual', 'manualmente', 'dificuldade', 'problema', 'demora', 'sobrecarga', 'retrabalho', 'faltas', 'desorganiza'];
   if (painKeywords.some(k => normalized.includes(k))) return Stage.DOR_IDENTIFICADA;
