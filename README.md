@@ -43,7 +43,7 @@ O sistema mantém duas classificações independentes:
 - `sales_priority`: urgência comercial, baseada nos sinais da conversa e no estágio do lead. Dor operacional tende a MÉDIA; interesse explícito, indicação de responsável e handoff tendem a ALTA.
 - `sales_priority_source`: identifica se a urgência está sendo calculada automaticamente (`auto`) ou foi ajustada manualmente (`manual`). Ajustes manuais são preservados.
 
-Na prospecção inicial, o piloto ordena primeiro pela adequação (`fit_score)); nos follow-ups, considera primeiro a urgência comercial.
+Na prospecção inicial, o piloto ordena primeiro pela adequação (`fit_score`); nos follow-ups, considera primeiro a urgência comercial.
 
 ## Funcionalidades
 
