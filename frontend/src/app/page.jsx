@@ -432,7 +432,7 @@ Queria entender rapidamente como vocês fazem isso hoje. Você teria alguns minu
       await fetchClinicas();
       setMostrarForm(false);
       setEditandoId(null);
-      setForm({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: 'LOW' });
+      setForm({ nome: '', tel: '', bairro: '', email: '', endereco: '', site: '', avaliacao: '', categoria: '', sales_priority: null });
     } catch(e) { alert('Erro ao salvar.'); }
     setSalvando(false);
   }
