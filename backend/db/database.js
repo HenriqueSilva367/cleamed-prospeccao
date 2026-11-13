@@ -254,6 +254,35 @@ db.exec(`
   );
 `);
 
+// Histórico automático de mudanças de etapa do pipeline.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS status_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    clinica_id INTEGER NOT NULL,
+    old_status TEXT,
+    new_status TEXT NOT NULL,
+    changed_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (clinica_id) REFERENCES clinicas(id)
+  );
+`);
+
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_status_history_clinica
+  ON status_history(clinica_id, changed_at DESC, id DESC);
+`);
+
+db.exec(`
+  CREATE TRIGGER IF NOT EXISTS trg_clinicas_status_history
+  AFTER UPDATE OF status ON clinicas
+  FOR EACH ROW
+  WHEN OLD.status IS NOT NEW.status
+  BEGIN
+    INSERT INTO status_history (clinica_id, old_status, new_status)
+    VALUES (NEW.id, OLD.status, NEW.status);
+  END;
+`);
+
+
 // Tabela de mensagens — persiste TODO o histórico de conversas independente do WhatsApp
 db.exec(`
   CREATE TABLE IF NOT EXISTS messages (
