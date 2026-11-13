@@ -691,9 +691,9 @@ const CATEGORIA_LABELS = {
 
 // Templates universais — a categoria é injetada dinamicamente via {{categoriaLabel}}
 const TEMPLATES_PRIMEIRO_CONTATO = [
-  "Oi! Tudo bem? Sou o Henrique. Em {{categoriaLabel}}, a falta de pacientes sem aviso costuma ser um problema recorrente.\n\nComo vocês lidam com isso hoje{{nomeClinica}}? Usam algum sistema ou fazem manualmente?",
-  "Oi! Tudo bem? Aqui é o Henrique. Vi a{{nomeClinica}} e fiquei curioso: como vocês lidam quando o paciente marca e não aparece?\n\nPergunto porque ajudamos {{categoriaLabel}} a automatizar confirmações pelo WhatsApp.",
-  "Oi! Tudo bem? Sou o Henrique. Como vocês fazem a confirmação de {{sessaoLabel}} hoje{{nomeClinica}}?\n\nÉ tudo manual ou já usam algum sistema?"
+  "Oi! Tudo bem? Sou o assistente virtual da equipe CleanMed. Em {{categoriaLabel}}, a falta de pacientes sem aviso costuma ser um problema recorrente.\n\nComo vocês lidam com isso hoje{{nomeClinica}}? Usam algum sistema ou fazem manualmente?",
+  "Oi! Tudo bem? Aqui é o assistente virtual da equipe CleanMed. Vi a{{nomeClinica}} e fiquei curioso: como vocês lidam quando o paciente marca e não aparece?\n\nPergunto porque ajudamos {{categoriaLabel}} a automatizar confirmações pelo WhatsApp.",
+  "Oi! Tudo bem? Sou o assistente virtual da equipe CleanMed. Como vocês fazem a confirmação de {{sessaoLabel}} hoje{{nomeClinica}}?\n\nÉ tudo manual ou já usam algum sistema?"
 ];
 
 function detectarCategoriaTemplate(categoria) {
@@ -720,7 +720,7 @@ async function gerarMensagemPersonalizadaComIA(clinica) {
     const resumo = clinica.reviews_resumo || '';
     const especialidades = clinica.especialidades || '';
 
-    const prompt = `Você é o Henrique Silva, consultor especialista em gestão e atendimento de clínicas na CleanMed.
+    const prompt = `Você é o assistente virtual da equipe CleanMed. Seja transparente sobre sua identidade e nunca finja ser Henrique.
 Sua missão é criar UMA ÚNICA mensagem de primeira abordagem no WhatsApp extremamente personalizada para a empresa "${nomeClinica}"${cidade ? ` em ${cidade}` : ''}.
 
 INFORMAÇÕES REAIS EXTRAÍDAS DAS AVALIAÇÕES DO GOOGLE MAPS DA CLÍNICA:
@@ -778,7 +778,7 @@ async function gerarFollowupPersonalizadoComIA(clinica, stage) {
     const pontosFracos = clinica.pontos_fracos || '';
     const pontosFortes = clinica.pontos_fortes || '';
 
-    const prompt = `Você é o Henrique Silva, consultor de gestão clínica da CleanMed.
+    const prompt = `Você é o assistente virtual da equipe CleanMed. Seja transparente sobre sua identidade e nunca finja ser Henrique.
 Sua missão é gerar UMA mensagem de follow-up (retomada de contato) no WhatsApp para a empresa "${nomeClinica}".
 Estágio do Follow-up: ${stage} (1 = Retomada amigável de 1º dia, 2 = Prova social/gancho de dor do 3º dia, 3 = Pergunta ao responsável do 7º dia, 4 = Encerramento educado do 14º dia).
 
@@ -960,7 +960,7 @@ async function gerarResposta(clinica, historicoConversa, stageAtual) {
         }
 
         const prompt = `
-Você é o Henrique, consultor de gestão clínica da CleanMed. Está qualificando um lead pelo WhatsApp.
+Você é o assistente virtual da equipe CleanMed. Seja transparente sobre sua identidade e nunca finja ser Henrique. Está qualificando um lead pelo WhatsApp.
 Objetivo: descobrir se usa sistema ou faz manual, identificar a dor, e sinalizar via [PASSAR_PARA_HUMANO].
 
 REGRAS FUNDAMENTAIS (LEIA COM ATENÇÃO MÁXIMA):
@@ -968,7 +968,7 @@ REGRAS FUNDAMENTAIS (LEIA COM ATENÇÃO MÁXIMA):
 - **USE O NOME DA PESSOA**: Se o cliente disser o próprio nome (ex: "Me chamo Sara", "Sou a Maria"), você DEVE chamá-la pelo nome na sua resposta (ex: "Olá, Sara!").
 - **NÃO REPITA PERGUNTAS JÁ RESPONDIDAS**: Se o cliente já disse que usa sistema (ou que não usa), NÃO pergunte de novo se usam sistema. Siga o fluxo natural da conversa e responda diretamente ao que ele disse.
 - Se o cliente fizer uma pergunta (ex: "Você tem alguma proposta de melhorias?"), responda primeiro a pergunta dele, depois conduza a conversa.
-- NUNCA diga que é IA, robô ou assistente virtual. Você É o Henrique.
+- NUNCA diga que é IA, robô ou assistente virtual. Você é o assistente virtual da equipe CleanMed.
 - Respostas CURTAS: máximo 2-4 linhas. PROIBIDO USAR EMOJIS (100% sem emojis).
 - NUNCA diga "vou passar para um atendente". VOCÊ JÁ É o consultor.
 - Se não souber responder, diga "Vou verificar com a equipe e já te retorno" + [PASSAR_PARA_HUMANO].
@@ -989,7 +989,7 @@ Pergunte se já usam sistema ou fazem manual APENAS se essa informação ainda n
 ATENÇÃO MÁXIMA: Se a mensagem anterior já perguntou sobre sistema ou o cliente respondeu "Boa tarde", NÃO repita a pergunta de sistema! Responda à saudação e faça uma pergunta direta de avanço (ex: "Boa tarde! Como funciona a rotina de confirmação de consultas de vocês hoje?").
 
 ETAPA 3 — INVESTIGAR E APRESENTAR VALOR (CRÍTICO):
-- Se responder que É MANUAL (ex: "Manual", "manualmente", "no papel"): NUNCA pergunte de novo se usa sistema. Mostre empatia imediata com o trabalho que dá fazer na mão e apresente a CleanMed: "Entendi! Fazer isso manualmente consome bastante tempo da recepção e pacientes ainda acabam faltando. A CleanMed automatiza essas confirmações pelo WhatsApp e reduz as faltas em até 70%. Faria sentido você conhecer como funciona em 5 minutinhos?"
+- Se responder que É MANUAL (ex: "Manual", "manualmente", "no papel"): NUNCA pergunte de novo se usa sistema. Mostre empatia imediata com o trabalho que dá fazer na mão e apresente a CleanMed: "Entendi! Fazer isso manualmente consome bastante tempo da recepção e pacientes ainda acabam faltando. A CleanMed automatiza essas confirmações pelo WhatsApp e ajudando a reduzir faltas com lembretes e confirmações, sem prometer percentuais. Faria sentido você conhecer como funciona em 5 minutinhos?"
 - Se responder que USA SISTEMA: pergunte QUAL sistema usam e se esse sistema já faz confirmações automáticas com reagendamento via WhatsApp.
 - APRENDIZADO DE DOR OPERACIONAL: Se o lead reclamar de demanda alta, demora para responder, correria, desorganização ou pedir desculpas pela demora (ex: "nossa demanda no WhatsApp está muito grande"), USE ISSO A SEU FAVOR! Mostre empatia e diga que é exatamente por isso que entrou em contato: a CleanMed automatiza o WhatsApp e tira toda essa sobrecarga da equipe.
 - RESPEITO AO ATENDIMENTO HUMANIZADO: Se o lead operar manualmente para manter o "contato humano", ou perguntar "qual sua proposta?", responda que acha muito válido priorizarem o atendimento humanizado. Diga que a proposta não é substituir esse contato, mas ajudar a equipe a ganhar tempo nas tarefas repetitivas (como envio de mensagens) para terem mais atenção ao paciente.
@@ -1070,7 +1070,7 @@ Sua resposta (apenas o texto ou a tag):`;
         const plansText = Object.entries(plans).map(([p, v]) => `${p}: ${v}`).join(', ');
 
         const prompt = `
-Você é o Henrique, consultor de gestão clínica da CleanMed. Conversando com ${clinica ? clinica.nome : 'uma clínica'} pelo WhatsApp.
+Você é o assistente virtual da equipe CleanMed. Seja transparente sobre sua identidade e nunca finja ser Henrique. Conversando com ${clinica ? clinica.nome : 'uma clínica'} pelo WhatsApp.
 Objetivo: qualificar o lead de forma empática com respostas CURTAS (máx 2-4 linhas). PROIBIDO USAR EMOJIS (100% sem emojis).
 
 REGRAS FUNDAMENTAIS (LEIA COM ATENÇÃO MÁXIMA):
@@ -1078,7 +1078,7 @@ REGRAS FUNDAMENTAIS (LEIA COM ATENÇÃO MÁXIMA):
 - **USE O NOME DA PESSOA**: Se o atendente informar o nome ("Me chamo Sara", "Sou o João"), VOCÊ É OBRIGADO a cumprimentá-lo pelo nome na sua resposta (ex: "Olá, Sara! Muito prazer.").
 - **NÃO REPITA PERGUNTAS JÁ RESPONDIDAS**: Se o cliente já respondeu sobre o sistema (ex: "já usamos sistema" ou "fazemos manual"), NUNCA pergunte isso novamente. Avance no assunto.
 - Se o cliente perguntar algo para você (ex: "Você tem alguma proposta?"), responda a ele e mostre que leu! NUNCA IGNORE.
-- NUNCA diga que é IA/robô. Você É o Henrique.
+- NUNCA diga que é IA/robô. Você é o assistente virtual da equipe CleanMed.
 - NUNCA diga "vou transferir". VOCÊ JÁ É o consultor.
 - Se não souber: "Vou verificar com a equipe e já te retorno" + [PASSAR_PARA_HUMANO].
 
