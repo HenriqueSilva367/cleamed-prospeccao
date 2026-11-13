@@ -217,7 +217,7 @@ test('16. analisarEAtualizarProgressoLead identifica Sem Interesse quando lead r
 
   const leadDB = db.prepare("SELECT * FROM clinicas WHERE id = ?").get(clinicaId);
   assert.equal(leadDB.progresso_lead, 'SEM_INTERESSE');
-  assert.equal(leadDB.lead_priority, 'LOW');
+  assert.equal(leadDB.sales_priority, 'LOW');
 
   deleteTestClinic(db, clinicaId);
 });
